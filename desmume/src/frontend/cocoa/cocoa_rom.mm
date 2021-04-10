@@ -28,6 +28,8 @@
 #undef BOOL
 
 
+static void RomIconToRGBA8888(uint32_t *bitmapData);
+
 @implementation CocoaDSRom
 
 @synthesize header;
@@ -65,33 +67,28 @@ static NSMutableDictionary *saveTypeValues = nil;
 	if (saveTypeValues == nil)
 	{
 		saveTypeValues = [[NSMutableDictionary alloc] initWithObjectsAndKeys:
-						  [NSNumber numberWithInteger:1], @"eeprom - 4 kbit",
-						  [NSNumber numberWithInteger:2], @"eeprom - 64 kbit",
-						  [NSNumber numberWithInteger:3], @"eeprom - 512 kbit",
-						  [NSNumber numberWithInteger:5], @"flash - 2 mbit",
-						  [NSNumber numberWithInteger:6], @"flash - 4 mbit",
-						  [NSNumber numberWithInteger:7], @"flash - 8 mbit",
-						  [NSNumber numberWithInteger:10], @"flash - 64 mbit",
-						  [NSNumber numberWithInteger:0], @"none",
-						  [NSNumber numberWithInteger:0], @"tbc",
+						  @1, @"eeprom - 4 kbit",
+						  @2, @"eeprom - 64 kbit",
+						  @3, @"eeprom - 512 kbit",
+						  @5, @"flash - 2 mbit",
+						  @6, @"flash - 4 mbit",
+						  @7, @"flash - 8 mbit",
+						  @10, @"flash - 64 mbit",
+						  @0, @"none",
+						  @0, @"tbc",
 						  nil];
 	}
 	
 	header = [[NSMutableDictionary alloc] initWithCapacity:32];
 	if (header == nil)
 	{
-		[self release];
-		self = nil;
-		return self;
+		return nil;
 	}
 	
-	bindings = [[CocoaDSRom romNotLoadedBindings] retain];
+	bindings = [CocoaDSRom romNotLoadedBindings];
 	if (bindings == nil)
 	{
-		[header release];
-		[self release];
-		self = nil;
-		return self;
+		return nil;
 	}
 	
 	fileURL = nil;
@@ -117,14 +114,6 @@ static NSMutableDictionary *saveTypeValues = nil;
 	{
 		NDS_FreeROM();
 	}
-	
-	[xmlElementStack release];
-	[xmlCharacterStack release];
-	[header release];
-	[bindings release];
-	[fileURL release];
-	
-	[super dealloc];
 }
 
 - (void) setWillStreamLoadData:(BOOL)theState
@@ -198,19 +187,19 @@ static NSMutableDictionary *saveTypeValues = nil;
 		[self.bindings setValue:[self.header objectForKey:@"gameDeveloperWithCode"] forKey:@"gameDeveloperWithCode"];
 		[self.bindings setValue:[NSString stringWithFormat:@"0x%04X", [[self.header objectForKey:@"makerCode"] intValue]] forKey:@"makerCode"];
 		[self.bindings setValue:[self unitCodeStringUsingID:[[self.header objectForKey:@"unitCode"] intValue]] forKey:@"unitCode"];
-		[self.bindings setValue:[CocoaDSRom byteSizeStringWithLargerUnit:(128*1024) << [[self.header objectForKey:@"romSize"] intValue]] forKey:@"romSize"];
+		[self.bindings setValue:[CocoaDSRom byteSizeStringWithLargerUnit:(128*1024) << [[self.header objectForKey:@"romSize"] integerValue]] forKey:@"romSize"];
 		[self.bindings setValue:[NSString stringWithFormat:@"0x%08X", [[self.header objectForKey:@"arm9BinaryOffset"] intValue]] forKey:@"arm9BinaryOffset"];
 		[self.bindings setValue:[NSString stringWithFormat:@"0x%08X", [[self.header objectForKey:@"arm9BinaryEntryAddress"] intValue]] forKey:@"arm9BinaryEntryAddress"];
 		[self.bindings setValue:[NSString stringWithFormat:@"0x%08X", [[self.header objectForKey:@"arm9BinaryStartAddress"] intValue]] forKey:@"arm9BinaryStartAddress"];
-		[self.bindings setValue:[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, [[self.header objectForKey:@"arm9BinarySize"] intValue]] forKey:@"arm9BinarySize"];
+		[self.bindings setValue:[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, (long)[[self.header objectForKey:@"arm9BinarySize"] integerValue]] forKey:@"arm9BinarySize"];
 		[self.bindings setValue:[NSString stringWithFormat:@"0x%08X", [[self.header objectForKey:@"arm7BinaryOffset"] intValue]] forKey:@"arm7BinaryOffset"];
 		[self.bindings setValue:[NSString stringWithFormat:@"0x%08X", [[self.header objectForKey:@"arm7BinaryEntryAddress"] intValue]] forKey:@"arm7BinaryEntryAddress"];
 		[self.bindings setValue:[NSString stringWithFormat:@"0x%08X", [[self.header objectForKey:@"arm7BinaryStartAddress"] intValue]] forKey:@"arm7BinaryStartAddress"];
-		[self.bindings setValue:[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, [[self.header objectForKey:@"arm7BinarySize"] intValue]] forKey:@"arm7BinarySize"];
+		[self.bindings setValue:[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, (long)[[self.header objectForKey:@"arm7BinarySize"] integerValue]] forKey:@"arm7BinarySize"];
 		[self.bindings setValue:[NSString stringWithFormat:@"0x%08X", [[self.header objectForKey:@"fntOffset"] intValue]] forKey:@"fntOffset"];
-		[self.bindings setValue:[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, [[self.header objectForKey:@"fntTableSize"] intValue]] forKey:@"fntTableSize"];
+		[self.bindings setValue:[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, (long)[[self.header objectForKey:@"fntTableSize"] integerValue]] forKey:@"fntTableSize"];
 		[self.bindings setValue:[NSString stringWithFormat:@"0x%08X", [[self.header objectForKey:@"fatOffset"] intValue]] forKey:@"fatOffset"];
-		[self.bindings setValue:[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, [[self.header objectForKey:@"fatSize"] intValue]] forKey:@"fatSize"];
+		[self.bindings setValue:[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, (long)[[self.header objectForKey:@"fatSize"] integerValue]] forKey:@"fatSize"];
 		[self.bindings setValue:[NSString stringWithFormat:@"0x%08X", [[self.header objectForKey:@"fatOffset"] intValue]] forKey:@"fatOffset"];
 		[self.bindings setValue:[NSString stringWithFormat:@"0x%08X", [[self.header objectForKey:@"iconOffset"] intValue]] forKey:@"iconOffset"];
 		[self.bindings setValue:[CocoaDSRom byteSizeStringWithLargerUnit:[[self.header objectForKey:@"usedRomSize"] intValue]] forKey:@"usedRomSize"];
@@ -265,41 +254,34 @@ static NSMutableDictionary *saveTypeValues = nil;
 	{
 		NSDictionary *userInfo = [[NSDictionary alloc] initWithObjectsAndKeys:[NSNumber numberWithBool:NO], @"DidLoad", nil];
 		[[NSNotificationCenter defaultCenter] postNotificationOnMainThreadName:@"org.desmume.DeSmuME.loadRomDidFinish" object:self userInfo:userInfo];
-		[userInfo release];
 		return result;
 	}
 	
 	fileURL = [theURL copy];
 	
-	NSString *advscDBPath = [[NSUserDefaults standardUserDefaults] stringForKey:@"Advanscene_DatabasePath"];
+	NSURL *advscDBPath = [[NSUserDefaults standardUserDefaults] URLForKey:@"Advanscene_DatabasePath"];
 	if (advscDBPath != nil)
 	{
-		NSXMLParser *advscDB = [[NSXMLParser alloc] initWithContentsOfURL:[NSURL fileURLWithPath:advscDBPath]];
+		NSXMLParser *advscDB = [[NSXMLParser alloc] initWithContentsOfURL:advscDBPath];
 		[advscDB setDelegate:self];
 		[advscDB parse];
-		[advscDB release];
 	}
 	
 	NSDictionary *userInfo = [[NSDictionary alloc] initWithObjectsAndKeys:[NSNumber numberWithBool:YES], @"DidLoad", self.fileURL, @"URL", nil];
 	[[NSNotificationCenter defaultCenter] postNotificationOnMainThreadName:@"org.desmume.DeSmuME.loadRomDidFinish" object:self userInfo:userInfo];
-	[userInfo release];
 	
 	return result;
 }
 
 - (void) loadDataOnThread:(id)object
 {
-	[self retain];
+	__strong CocoaDSRom *strongSelf = self;
 	
 	NSURL *theURL = [(NSURL *)object copy];
-	NSAutoreleasePool *threadPool = [[NSAutoreleasePool alloc] init];
-	
-	[self loadData:theURL];
-	
-	[threadPool release];
-	[theURL release];
-	
-	[self release];
+	@autoreleasepool {
+		[strongSelf loadData:theURL];
+	}
+	strongSelf = nil;
 }
 
 - (NSString *) title
@@ -310,7 +292,7 @@ static NSMutableDictionary *saveTypeValues = nil;
 		return nil;
 	}
 	
-	return [[[NSString alloc] initWithBytes:ndsRomHeader->gameTile length:ROMINFO_GAME_TITLE_LENGTH encoding:NSUTF8StringEncoding] autorelease];
+	return [[NSString alloc] initWithBytes:ndsRomHeader->gameTile length:ROMINFO_GAME_TITLE_LENGTH encoding:NSUTF8StringEncoding];
 }
 
 - (NSString *) code
@@ -321,14 +303,14 @@ static NSMutableDictionary *saveTypeValues = nil;
 		return nil;
 	}
 	
-	return [[[NSString alloc] initWithBytes:ndsRomHeader->gameCode length:ROMINFO_GAME_CODE_LENGTH encoding:NSUTF8StringEncoding] autorelease];
+	return [[NSString alloc] initWithBytes:ndsRomHeader->gameCode length:ROMINFO_GAME_CODE_LENGTH encoding:NSUTF8StringEncoding];
 }
 
 - (NSString *) banner:(const UInt16 *)UTF16TextBuffer
 {
 	NSUInteger bannerLength = ROMINFO_GAME_BANNER_LENGTH * sizeof(*UTF16TextBuffer);
 	
-	return [[[NSString alloc] initWithBytes:UTF16TextBuffer length:bannerLength encoding:NSUTF16LittleEndianStringEncoding] autorelease];
+	return [[NSString alloc] initWithBytes:UTF16TextBuffer length:bannerLength encoding:NSUTF16LittleEndianStringEncoding];
 }
 
 - (NSString *) internalName
@@ -425,7 +407,6 @@ static NSMutableDictionary *saveTypeValues = nil;
 	
 	if(imageRep == nil)
 	{
-		[newImage release];
 		newImage = nil;
 		return newImage;
 	}
@@ -440,10 +421,9 @@ static NSMutableDictionary *saveTypeValues = nil;
 	}
 #endif
 	
-	[imageRep autorelease];
 	[newImage addRepresentation:imageRep];
 	
-	return [newImage autorelease];
+	return newImage;
 }
 
 - (void) handleAdvansceneDatabaseInfo
@@ -506,7 +486,6 @@ static NSMutableDictionary *saveTypeValues = nil;
 			[parser abortParsing];
 		}
 		
-		[xmlCurrentRom release];
 		xmlCurrentRom = nil;
 	}
 	else
@@ -570,94 +549,81 @@ static NSMutableDictionary *saveTypeValues = nil;
 
 + (NSMutableDictionary *) romNotLoadedBindings
 {
-	NSImage *iconImage = [NSImage imageNamed:@"NSApplicationIcon"];
+	NSImage *iconImage = [NSImage imageNamed:NSImageNameApplicationIcon];
 	
-	NSString *romNameAndSerialInfoString = @"Name: ";
-	romNameAndSerialInfoString = [romNameAndSerialInfoString stringByAppendingString:NSSTRING_STATUS_NO_ROM_LOADED];
-	romNameAndSerialInfoString = [[romNameAndSerialInfoString stringByAppendingString:@"\nSerial: "] stringByAppendingString:NSSTRING_STATUS_NO_ROM_LOADED];
+	NSString *noRom = NSSTRING_STATUS_NO_ROM_LOADED;
+	NSMutableString *romNameAndSerialInfoString = [NSMutableString stringWithString:@"Name: "];
+	[romNameAndSerialInfoString appendString:noRom];
+	[romNameAndSerialInfoString appendString:@"\nSerial: "];
+	[romNameAndSerialInfoString appendString:noRom];
 	
 	return [NSMutableDictionary dictionaryWithObjectsAndKeys:
-			NSSTRING_STATUS_NO_ROM_LOADED, @"romInternalName",
-			NSSTRING_STATUS_NO_ROM_LOADED, @"romSerial",
-			romNameAndSerialInfoString, @"romNameAndSerialInfo",
-			NSSTRING_STATUS_NO_ROM_LOADED, @"bannerJapanese",
-			NSSTRING_STATUS_NO_ROM_LOADED, @"bannerEnglish",
-			NSSTRING_STATUS_NO_ROM_LOADED, @"bannerFrench",
-			NSSTRING_STATUS_NO_ROM_LOADED, @"bannerGerman",
-			NSSTRING_STATUS_NO_ROM_LOADED, @"bannerItalian",
-			NSSTRING_STATUS_NO_ROM_LOADED, @"bannerSpanish",
-			NSSTRING_STATUS_NO_ROM_LOADED, @"gameTitle",
-			NSSTRING_STATUS_NO_ROM_LOADED, @"gameCode",
-			NSSTRING_STATUS_NO_ROM_LOADED, @"gameDeveloper",
-			NSSTRING_STATUS_NO_ROM_LOADED, @"gameDeveloperWithCode",
-			NSSTRING_STATUS_NO_ROM_LOADED, @"unitCode",
-			NSSTRING_STATUS_NO_ROM_LOADED, @"makerCode",
-			[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, 0], @"romSize",
+			noRom, @"romInternalName",
+			noRom, @"romSerial",
+			[romNameAndSerialInfoString copy], @"romNameAndSerialInfo",
+			noRom, @"bannerJapanese",
+			noRom, @"bannerEnglish",
+			noRom, @"bannerFrench",
+			noRom, @"bannerGerman",
+			noRom, @"bannerItalian",
+			noRom, @"bannerSpanish",
+			noRom, @"gameTitle",
+			noRom, @"gameCode",
+			noRom, @"gameDeveloper",
+			noRom, @"gameDeveloperWithCode",
+			noRom, @"unitCode",
+			noRom, @"makerCode",
+			[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, 0l], @"romSize",
 			@"----------", @"arm9BinaryOffset",
 			@"----------", @"arm9BinaryEntryAddress",
 			@"----------", @"arm9BinaryStartAddress",
-			[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, 0], @"arm9BinarySize",
+			[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, 0l], @"arm9BinarySize",
 			@"----------", @"arm7BinaryOffset",
 			@"----------", @"arm7BinaryEntryAddress",
 			@"----------", @"arm7BinaryStartAddress",
-			[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, 0], @"arm7BinarySize",
+			[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, 0l], @"arm7BinarySize",
 			@"----------", @"fntOffset",
-			[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, 0], @"fntTableSize",
+			[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, 0l], @"fntTableSize",
 			@"----------", @"fatOffset",
-			[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, 0], @"fatSize",
+			[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, 0l], @"fatSize",
 			@"----------", @"iconOffset",
-			[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, 0], @"usedRomSize",
-			[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, 0], @"unusedCapacity",
+			[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, 0l], @"usedRomSize",
+			[NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, 0l], @"unusedCapacity",
 			iconImage, @"iconImage",
 			nil];
 }
 
 + (NSString *) byteSizeStringWithLargerUnit:(NSUInteger)byteSize
 {
-	const float kilobyteSize = byteSize / 1024.0f;
-	const float megabyteSize = byteSize / 1024.0f / 1024.0f;
-	const float gigabyteSize = byteSize / 1024.0f / 1024.0f / 1024.0f;
-	
-	NSString *byteString = [NSString stringWithFormat:NSSTRING_STATUS_SIZE_BYTES, byteSize];
-	NSString *unitString = byteString;
-	
-	if (gigabyteSize > 1.0f)
-	{
-		unitString = [NSString stringWithFormat:@"%@ (%1.1f GB)", byteString, gigabyteSize];
-	}
-	else if (megabyteSize > 1.0f)
-	{
-		unitString = [NSString stringWithFormat:@"%@ (%1.1f MB)", byteString, megabyteSize];
-	}
-	else if (kilobyteSize > 1.0f)
-	{
-		unitString = [NSString stringWithFormat:@"%@ (%1.1f KB)", byteString, kilobyteSize];
-	}
-	
-	return unitString;
+	static NSByteCountFormatter * formatter;
+	static dispatch_once_t onceToken;
+	dispatch_once(&onceToken, ^{
+		formatter = [[NSByteCountFormatter alloc] init];
+		formatter.includesActualByteCount = YES;
+		formatter.formattingContext = NSFormattingContextListItem;
+	});
+	return [formatter stringFromByteCount:byteSize];
 }
 
 @end
 
-/********************************************************************************************
-	RomIconToRGBA8888()
+/**
+	@function RomIconToRGBA8888()
 
-	Reads the icon image data from a ROM and converts it to an RGBA8888 formatted bitmap.
+	@brief Reads the icon image data from a ROM and converts it to an RGBA8888 formatted bitmap.
 
-	Takes:
-		bitmapData - Write pointer for the icon's pixel data.
+	@param bitmapData Write pointer for the icon's pixel data.
 
-	Returns:
-		Nothing.
-
-	Details:
+	@Discussion
 		- If bitmapData is NULL, then this function immediately returns and does nothing.
+ 
 		- If no ROM is loaded, then bitmapData will have a black square icon.
+ 
 		- The caller is responsible for ensuring that bitmapData points to a valid
 		  memory location and that the memory block is large enough to hold the pixel
 		  data. The written data will be 32x32 pixels in 32-bit color. Therefore, a size
 		  of at least 4096 bytes must be allocated.
- ********************************************************************************************/
+ **/
 void RomIconToRGBA8888(uint32_t *bitmapData)
 {
 	const RomBanner &ndsRomBanner = gameInfo.getRomBanner(); // Contains the memory addresses we need to get our read pointer locations.

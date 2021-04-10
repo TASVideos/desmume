@@ -23,11 +23,7 @@
 #include "../../NDSSystem.h"
 #include "../../rasterize.h"
 
-#ifdef MAC_OS_X_VERSION_10_7
-	#include "../../OGLRender_3_2.h"
-#else
-	#include "../../OGLRender.h"
-#endif
+#include "../../OGLRender_3_2.h"
 
 #include <OpenGL/OpenGL.h>
 #import "userinterface/MacOGLDisplayView.h"
@@ -39,6 +35,31 @@
 #ifdef BOOL
 #undef BOOL
 #endif
+
+#ifdef ENABLE_SHARED_FETCH_OBJECT
+
+static void* RunFetchThread(void *arg);
+
+static CVReturn MacDisplayLinkCallback(CVDisplayLinkRef displayLink,
+									   const CVTimeStamp *inNow,
+									   const CVTimeStamp *inOutputTime,
+									   CVOptionFlags flagsIn,
+									   CVOptionFlags *flagsOut,
+									   void *displayLinkContext);
+#endif
+
+static bool OSXOpenGLRendererInit();
+static bool OSXOpenGLRendererBegin();
+static void OSXOpenGLRendererEnd();
+static bool OSXOpenGLRendererFramebufferDidResize(const bool isFBOSupported, size_t w, size_t h);
+
+static bool CreateOpenGLRenderer();
+static void DestroyOpenGLRenderer();
+static void RequestOpenGLRenderer_3_2(bool request_3_2);
+static void SetOpenGLRendererFunctions(bool (*initFunction)(),
+									   bool (*beginOGLFunction)(),
+									   void (*endOGLFunction)(),
+									   bool (*resizeOGLFunction)(const bool isFBOSupported, size_t w, size_t h));
 
 GPU3DInterface *core3DList[] = {
 	&gpu3DNull,
@@ -229,10 +250,6 @@ public:
 	
 	delete fetchObject;
 	delete gpuEvent;
-	
-	[self setRender3DMultisampleSizeString:nil];
-	
-	[super dealloc];
 }
 
 - (GPUClientFetchObject *) fetchObject
@@ -242,7 +259,7 @@ public:
 
 - (MacClientSharedObject *) sharedData
 {
-	return (MacClientSharedObject *)fetchObject->GetClientData();
+	return (__bridge MacClientSharedObject *)fetchObject->GetClientData();
 }
 
 - (void) setGpuStateFlags:(UInt32)flags
@@ -388,7 +405,7 @@ public:
 #ifdef ENABLE_SHARED_FETCH_OBJECT
 - (void) setOutputList:(NSMutableArray *)theOutputList rwlock:(pthread_rwlock_t *)theRWLock
 {
-	[(MacClientSharedObject *)fetchObject->GetClientData() setOutputList:theOutputList rwlock:theRWLock];
+	[(__bridge MacClientSharedObject *)fetchObject->GetClientData() setOutputList:theOutputList rwlock:theRWLock];
 }
 #endif
 
@@ -1145,7 +1162,7 @@ public:
 	sp.sched_priority = 44;
 	pthread_attr_setschedparam(&threadAttr, &sp);
 	
-	pthread_create(&_threadFetch, &threadAttr, &RunFetchThread, self);
+	pthread_create(&_threadFetch, &threadAttr, &RunFetchThread, (__bridge void*)self);
 	pthread_attr_destroy(&threadAttr);
 	
 	_taskEmulationLoop = 0;
@@ -1203,14 +1220,12 @@ public:
 		pthread_rwlock_wrlock(currentRWLock);
 	}
 	
-	[_cdsOutputList release];
+	_cdsOutputList = nil;
 	
 	if (currentRWLock != NULL)
 	{
 		pthread_rwlock_unlock(currentRWLock);
 	}
-	
-	[super dealloc];
 }
 
 - (void) semaphoreFramebufferCreate
@@ -1337,9 +1352,7 @@ public:
 		pthread_rwlock_wrlock(currentRWLock);
 	}
 	
-	[_cdsOutputList release];
 	_cdsOutputList = theOutputList;
-	[_cdsOutputList retain];
 	
 	if (currentRWLock != NULL)
 	{
@@ -1493,7 +1506,7 @@ public:
 		{
 			CVDisplayLinkRef newDisplayLink;
 			CVDisplayLinkCreateWithCGDisplay(displayID, &newDisplayLink);
-			CVDisplayLinkSetOutputCallback(newDisplayLink, &MacDisplayLinkCallback, self);
+			CVDisplayLinkSetOutputCallback(newDisplayLink, &MacDisplayLinkCallback, (__bridge void*)self);
 			
 			_displayLinksActiveList[displayID] = newDisplayLink;
 			_displayLinkFlushTimeList[displayID] = 0;
@@ -1623,7 +1636,7 @@ void GPUEventHandlerOSX::DidFrameBegin(const size_t line, const bool isFrameSkip
 #ifdef ENABLE_SHARED_FETCH_OBJECT
 	if (!isFrameSkipRequested)
 	{
-		MacClientSharedObject *sharedViewObject = (MacClientSharedObject *)this->_fetchObject->GetClientData();
+		MacClientSharedObject *sharedViewObject = (__bridge MacClientSharedObject *)this->_fetchObject->GetClientData();
 		
 		if ( (pageCount > 1) && (line == 0) )
 		{
@@ -1639,7 +1652,7 @@ void GPUEventHandlerOSX::DidFrameBegin(const size_t line, const bool isFrameSkip
 void GPUEventHandlerOSX::DidFrameEnd(bool isFrameSkipped, const NDSDisplayInfo &latestDisplayInfo)
 {
 #ifdef ENABLE_SHARED_FETCH_OBJECT
-	MacClientSharedObject *sharedViewObject = (MacClientSharedObject *)this->_fetchObject->GetClientData();
+	MacClientSharedObject *sharedViewObject = (__bridge MacClientSharedObject *)this->_fetchObject->GetClientData();
 	if (!isFrameSkipped)
 	{
 		this->_fetchObject->SetFetchDisplayInfo(latestDisplayInfo);
@@ -1748,7 +1761,7 @@ CGLPBufferObj OSXOpenGLRendererPBuffer = NULL;
 
 static void* RunFetchThread(void *arg)
 {
-	MacClientSharedObject *sharedData = (MacClientSharedObject *)arg;
+	MacClientSharedObject *sharedData = (__bridge MacClientSharedObject *)arg;
 	[sharedData runFetchLoop];
 	
 	return NULL;
@@ -1761,7 +1774,7 @@ CVReturn MacDisplayLinkCallback(CVDisplayLinkRef displayLink,
 								CVOptionFlags *flagsOut,
 								void *displayLinkContext)
 {
-	MacClientSharedObject *sharedData = (MacClientSharedObject *)displayLinkContext;
+	MacClientSharedObject *sharedData = (__bridge MacClientSharedObject *)displayLinkContext;
 	[sharedData flushAllDisplaysOnDisplayLink:displayLink timeStampNow:inNow timeStampOutput:inOutputTime];
 	
 	return kCVReturnSuccess;
@@ -1840,7 +1853,7 @@ bool OSXOpenGLRendererFramebufferDidResize(const bool isFBOSupported, size_t w, 
 bool CreateOpenGLRenderer()
 {
 	bool result = false;
-	bool useContext_3_2 = false;
+	bool useContext_3_2 = true;
 	CGLPixelFormatObj cglPixFormat = NULL;
 	CGLContextObj newContext = NULL;
 	GLint virtualScreenCount = 0;
@@ -1855,16 +1868,8 @@ bool CreateOpenGLRenderer()
 		(CGLPixelFormatAttribute)0
 	};
 	
-#ifdef MAC_OS_X_VERSION_10_7
-	// If we can support a 3.2 Core Profile context, then request that in our
-	// pixel format attributes.
-	useContext_3_2 = IsOSXVersionSupported(10, 7, 0);
-	if (useContext_3_2)
-	{
-		attrs[9] = kCGLPFAOpenGLProfile;
-		attrs[10] = (CGLPixelFormatAttribute)kCGLOGLPVersion_3_2_Core;
-	}
-#endif
+	attrs[9] = kCGLPFAOpenGLProfile;
+	attrs[10] = (CGLPixelFormatAttribute)kCGLOGLPVersion_3_2_Core;
 	
 	CGLChoosePixelFormat(attrs, &cglPixFormat, &virtualScreenCount);
 	if (cglPixFormat == NULL)

@@ -23,8 +23,6 @@
 
 #import "cocoa_globals.h"
 
-//#define FORCE_AUDIOCOMPONENT_10_5
-
 CoreAudioInput::CoreAudioInput()
 {
 	_spinlockAUHAL = (OSSpinLock *)malloc(sizeof(OSSpinLock));
@@ -60,15 +58,9 @@ CoreAudioInput::CoreAudioInput()
 	_auOutputNode = 0;
 	memset(&_timeStamp, 0, sizeof(AudioTimeStamp));
 	
-#if !defined(FORCE_AUDIOCOMPONENT_10_5) && defined(MAC_OS_X_VERSION_10_6) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6
 	AudioComponentDescription halInputDeviceDesc;
 	AudioComponentDescription formatConverterDesc;
 	AudioComponentDescription outputDesc;
-#else
-	ComponentDescription halInputDeviceDesc;
-	ComponentDescription formatConverterDesc;
-	ComponentDescription outputDesc;
-#endif
 	halInputDeviceDesc.componentType = kAudioUnitType_Output;
 	halInputDeviceDesc.componentSubType = kAudioUnitSubType_HALOutput;
 	halInputDeviceDesc.componentManufacturer = kAudioUnitManufacturer_Apple;
@@ -91,13 +83,8 @@ CoreAudioInput::CoreAudioInput()
 	
 	NewAUGraph(&_auGraph);
 	AUGraphOpen(_auGraph);
-#if defined(MAC_OS_X_VERSION_10_6) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6
 	AUGraphAddNode(_auGraph, (AudioComponentDescription *)&formatConverterDesc, &_auFormatConverterNode);
 	AUGraphAddNode(_auGraph, (AudioComponentDescription *)&outputDesc, &_auOutputNode);
-#else
-	AUGraphAddNode(_auGraph, (ComponentDescription *)&formatConverterDesc, &_auFormatConverterNode);
-	AUGraphAddNode(_auGraph, (ComponentDescription *)&outputDesc, &_auOutputNode);
-#endif
 	AUGraphConnectNodeInput(_auGraph, _auFormatConverterNode, 0, _auOutputNode, 0);
 	
 	AUGraphNodeInfo(_auGraph, _auFormatConverterNode, NULL, &_auFormatConverterUnit);
@@ -892,30 +879,14 @@ CoreAudioOutput::CoreAudioOutput(size_t bufferSamples, size_t sampleSize)
 	_volume = 1.0f;
 	
 	// Create a new audio unit
-#if !defined(FORCE_AUDIOCOMPONENT_10_5) && defined(MAC_OS_X_VERSION_10_6) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6
-	if (IsOSXVersionSupported(10, 6, 0))
-	{
-		AudioComponentDescription audioDesc;
-		audioDesc.componentType = kAudioUnitType_Output;
-		audioDesc.componentSubType = kAudioUnitSubType_DefaultOutput;
-		audioDesc.componentManufacturer = kAudioUnitManufacturer_Apple;
-		audioDesc.componentFlags = 0;
-		audioDesc.componentFlagsMask = 0;
-		
-		CreateAudioUnitInstance(&_au, &audioDesc);
-	}
-	else
-#endif
-	{
-		ComponentDescription audioDesc;
-		audioDesc.componentType = kAudioUnitType_Output;
-		audioDesc.componentSubType = kAudioUnitSubType_DefaultOutput;
-		audioDesc.componentManufacturer = kAudioUnitManufacturer_Apple;
-		audioDesc.componentFlags = 0;
-		audioDesc.componentFlagsMask = 0;
-		
-		CreateAudioUnitInstance(&_au, &audioDesc);
-	}
+	AudioComponentDescription audioDesc;
+	audioDesc.componentType = kAudioUnitType_Output;
+	audioDesc.componentSubType = kAudioUnitSubType_DefaultOutput;
+	audioDesc.componentManufacturer = kAudioUnitManufacturer_Apple;
+	audioDesc.componentFlags = 0;
+	audioDesc.componentFlagsMask = 0;
+	
+	CreateAudioUnitInstance(&_au, &audioDesc);
 	
 	// Set the render callback
 	AURenderCallbackStruct callback;
@@ -1083,35 +1054,10 @@ OSStatus CoreAudioOutputRenderCallback(void *inRefCon,
 
 #pragma mark -
 
-bool CreateAudioUnitInstance(AudioUnit *au, ComponentDescription *auDescription)
-{
-	bool result = false;
-	if (au == NULL || auDescription == NULL)
-	{
-		return result;
-	}
-	
-	Component theComponent = FindNextComponent(NULL, auDescription);
-	if (theComponent == NULL)
-	{
-		return result;
-	}
-	
-	OSErr error = OpenAComponent(theComponent, au);
-	if (error != noErr)
-	{
-		return result;
-	}
-	
-	result = true;
-	return result;
-}
-
-#if !defined(FORCE_AUDIOCOMPONENT_10_5) && defined(MAC_OS_X_VERSION_10_6) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6
 bool CreateAudioUnitInstance(AudioUnit *au, AudioComponentDescription *auDescription)
 {
 	bool result = false;
-	if (au == NULL || auDescription == NULL || !IsOSXVersionSupported(10, 6, 0))
+	if (au == NULL || auDescription == NULL)
 	{
 		return result;
 	}
@@ -1131,7 +1077,6 @@ bool CreateAudioUnitInstance(AudioUnit *au, AudioComponentDescription *auDescrip
 	result = true;
 	return result;
 }
-#endif
 
 void DestroyAudioUnitInstance(AudioUnit *au)
 {
@@ -1142,14 +1087,5 @@ void DestroyAudioUnitInstance(AudioUnit *au)
 	
 	AudioOutputUnitStop(*au);
 	AudioUnitUninitialize(*au);
-#if !defined(FORCE_AUDIOCOMPONENT_10_5) && defined(MAC_OS_X_VERSION_10_6) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6
-	if (IsOSXVersionSupported(10, 6, 0))
-	{
-		AudioComponentInstanceDispose(*au);
-	}
-	else
-#endif
-	{
-		CloseComponent(*au);
-	}
+	AudioComponentInstanceDispose(*au);
 }

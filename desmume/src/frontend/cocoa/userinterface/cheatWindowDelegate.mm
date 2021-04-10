@@ -25,7 +25,7 @@
 
 @implementation CheatWindowDelegate
 
-@dynamic dummyObject;
+@synthesize dummyObject;
 @synthesize window;
 @synthesize cheatConfigBox;
 @synthesize cheatSearchView;
@@ -67,18 +67,13 @@
 	bindings = [[NSMutableDictionary alloc] init];
 	if (bindings == nil)
 	{
-		[self release];
-		self = nil;
-		return self;
+		return nil;
 	}
 	
 	cdsCheatSearch = [[CocoaDSCheatSearch alloc] init];
 	if (cdsCheatSearch == nil)
 	{
-		[bindings release];
-		[self release];
-		self = nil;
-		return self;
+		return nil;
 	}
 	
 	workingCheat = nil;
@@ -96,7 +91,7 @@
 	
 	if ([CocoaDSCheatItem iconInternalCheat] == nil || [CocoaDSCheatItem iconActionReplay] == nil || [CocoaDSCheatItem iconCodeBreaker] == nil)
 	{
-		[CocoaDSCheatItem setIconInternalCheat:[NSImage imageNamed:@"NSApplicationIcon"]];
+		[CocoaDSCheatItem setIconInternalCheat:[NSImage imageNamed:NSImageNameApplicationIcon]];
 		[CocoaDSCheatItem setIconActionReplay:[NSImage imageNamed:@"Icon_ActionReplay_128x128"]];
 		[CocoaDSCheatItem setIconCodeBreaker:[NSImage imageNamed:@"Icon_CodeBreaker_128x128"]];
 	}
@@ -108,10 +103,6 @@
 {	
 	self.workingCheat = nil;
 	self.cdsCheats = nil;
-	[cdsCheatSearch release];
-	[bindings release];
-	
-	[super dealloc];
 }
 
 - (IBAction) addToList:(id)sender
@@ -133,7 +124,7 @@
 		untitledString = @"Untitled";
 	}
 	
-	CocoaDSCheatItem *newCheatItem = [[[CocoaDSCheatItem alloc] init] autorelease];
+	CocoaDSCheatItem *newCheatItem = [[CocoaDSCheatItem alloc] init];
 	newCheatItem.cheatType = CHEAT_TYPE_INTERNAL;
 	newCheatItem.description = untitledString;
 	
@@ -187,11 +178,22 @@
 
 - (IBAction) viewDatabase:(id)sender
 {
-	[NSApp beginSheet:cheatDatabaseSheet
-	   modalForWindow:window
-		modalDelegate:self
-	   didEndSelector:@selector(didEndCheatDatabaseSheet:returnCode:contextInfo:)
-		  contextInfo:nil];
+	[window beginSheet:cheatDatabaseSheet
+	 completionHandler:^(NSModalResponse returnCode) {
+		switch (returnCode)
+		{
+			case NSModalResponseCancel:
+				return;
+				break;
+				
+			case NSModalResponseOK:
+				[self addSelectedFromCheatDatabase];
+				break;
+				
+			default:
+				break;
+		}
+	}];
 }
 
 - (IBAction) setInternalCheatValue:(id)sender
@@ -359,7 +361,6 @@
 	if (newView != nil)
 	{
 		NSRect frameRect = [currentView frame];
-		[currentView retain];
 		[cheatConfigBox replaceSubview:currentView with:newView];
 		currentView = newView;
 		[currentView setFrame:frameRect];
@@ -399,7 +400,6 @@
 	if (newView != nil)
 	{
 		NSRect frameRect = [currentSearchStyleView frame];
-		[currentSearchStyleView retain];
 		[cheatSearchView replaceSubview:currentSearchStyleView with:newView];
 		currentSearchStyleView = newView;
 		[currentSearchStyleView setFrame:frameRect];
@@ -446,7 +446,7 @@
 	{
 		if (cheatItem.willAdd)
 		{
-			CocoaDSCheatItem *newCheatItem = [[[CocoaDSCheatItem alloc] initWithCheatData:cheatItem.data] autorelease];
+			CocoaDSCheatItem *newCheatItem = [[CocoaDSCheatItem alloc] initWithCheatData:cheatItem.data];
 			[newCheatItem retainData];
 			[cheatListController addObject:newCheatItem];
 			[self.cdsCheats add:newCheatItem];
@@ -465,26 +465,7 @@
 	NSWindow *sheet = [(NSControl *)sender window];
 	NSInteger code = [(NSControl *)sender tag];
 	
-    [NSApp endSheet:sheet returnCode:code];
-}
-
-- (void) didEndCheatDatabaseSheet:(NSWindow *)sheet returnCode:(NSInteger)returnCode contextInfo:(void *)contextInfo
-{
-	[sheet orderOut:self];
-	
-	switch (returnCode)
-	{
-		case NSCancelButton:
-			return;
-			break;
-			
-		case NSOKButton:
-			[self addSelectedFromCheatDatabase];
-			break;
-			
-		default:
-			break;
-	}
+    [window endSheet:sheet returnCode:code];
 }
 
 - (void)windowDidBecomeKey:(NSNotification *)notification
@@ -520,7 +501,6 @@
 			self.workingCheat = nil;
 			
 			NSRect frameRect = [currentView frame];
-			[currentView retain];
 			[cheatConfigBox replaceSubview:currentView with:viewConfigureNoSelection];
 			currentView = viewConfigureNoSelection;
 			[currentView setFrame:frameRect];

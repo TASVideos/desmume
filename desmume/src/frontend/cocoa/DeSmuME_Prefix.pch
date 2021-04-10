@@ -18,6 +18,7 @@
 
 #ifdef __OBJC__
 	#define OBJ_C
+	#import <Cocoa/Cocoa.h>
 #endif
 
 #define HOST_DARWIN
@@ -39,6 +40,10 @@
 
 #if defined(__ppc__) || defined(__ppc64__)
 	#define MSB_FIRST 1
+#endif
+
+#ifdef __aarch64__
+#define USE_POSIX_MEMALIGN 1
 #endif
 
 #define PORT_VERSION	"Cocoa"

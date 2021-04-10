@@ -30,7 +30,7 @@
 
 // Determine CPU architecture for platforms that don't use the autoconf script
 #if defined(HOST_WINDOWS) || defined(DESMUME_COCOA)
-	#if defined(__x86_64__) || defined(__LP64) || defined(__IA64__) || defined(_M_X64) || defined(_WIN64)
+	#if defined(__x86_64__) || defined(__LP64) || defined(__LP64__) || defined(__IA64__) || defined(_M_X64) || defined(_WIN64)
 		#define HOST_64
 	#else
 		#define HOST_32
@@ -366,7 +366,7 @@ inline bool atomic_test_and_set_barrier32(volatile s32 *V, s32 M)		{ return (_in
 inline bool atomic_test_and_clear_32(volatile s32 *V, s32 M)			{ return (_interlockedbittestandreset((volatile LONG *)V, (LONG)M)) ? true : false; }
 inline bool atomic_test_and_clear_barrier32(volatile s32 *V, s32 M)		{ return (_interlockedbittestandreset((volatile LONG *)V, (LONG)M)) ? true : false; }
 
-#elif defined(DESMUME_COCOA)
+#elif defined(DESMUME_COCOA) && __cplusplus > 201103
 #include <libkern/OSAtomic.h>
 
 #define atomic_add_32(V,M)						OSAtomicAdd32((M),(V))

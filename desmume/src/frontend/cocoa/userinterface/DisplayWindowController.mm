@@ -36,13 +36,7 @@
 
 #include <Carbon/Carbon.h>
 
-#if defined(__ppc__) || defined(__ppc64__)
-#include <map>
-#elif !defined(MAC_OS_X_VERSION_10_7) || (MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_6)
-#include <tr1/unordered_map>
-#else
 #include <unordered_map>
-#endif
 
 
 @implementation DisplayWindowController
@@ -69,14 +63,7 @@
 @dynamic isMinSizeNormal;
 @dynamic isShowingStatusBar;
 
-#if defined(__ppc__) || defined(__ppc64__)
-static std::map<NSScreen *, DisplayWindowController *> _screenMap; // Key = NSScreen object pointer, Value = DisplayWindowController object pointer
-#elif !defined(MAC_OS_X_VERSION_10_7) || (MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_6)
-static std::tr1::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // Key = NSScreen object pointer, Value = DisplayWindowController object pointer
-#else
 static std::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // Key = NSScreen object pointer, Value = DisplayWindowController object pointer
-
-#endif
 
 - (id)initWithWindowNibName:(NSString *)windowNibName emuControlDelegate:(EmuControllerDelegate *)theEmuController
 {
@@ -87,7 +74,7 @@ static std::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // 
 	}
 	
 	view = nil;
-	emuControl = [theEmuController retain];
+	emuControl = theEmuController;
 	assignedScreen = nil;
 	masterWindow = nil;
 	
@@ -130,8 +117,6 @@ static std::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // 
 	[self setAssignedScreen:nil];
 	[self setView:nil];
 	[self setMasterWindow:nil];
-	
-	[super dealloc];
 }
 
 #pragma mark Dynamic Property Methods
@@ -559,7 +544,7 @@ static std::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // 
 	[masterWindow setFrame:newWindowFrame display:YES animate:NO];
 }
 
-- (double) maxViewScaleInHostScreen:(double)contentBoundsWidth height:(double)contentBoundsHeight
+- (CGFloat) maxViewScaleInHostScreen:(CGFloat)contentBoundsWidth height:(CGFloat)contentBoundsHeight
 {
 	// Determine the maximum scale based on the visible screen size (which
 	// doesn't include the menu bar or dock).
@@ -591,11 +576,11 @@ static std::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // 
 	screenRect.origin.x = 0.0;
 	screenRect.origin.y = 0.0;
 	
-	DisplayFullScreenWindow *newFullScreenWindow = [[[DisplayFullScreenWindow alloc] initWithContentRect:screenRect
+	DisplayFullScreenWindow *newFullScreenWindow = [[DisplayFullScreenWindow alloc] initWithContentRect:screenRect
 																							   styleMask:NSBorderlessWindowMask
 																								 backing:NSBackingStoreBuffered
 																								   defer:NO
-																								  screen:targetScreen] autorelease];
+																								  screen:targetScreen];
 	[newFullScreenWindow setHasShadow:NO];
 	[view setFrame:screenRect];
 	[[newFullScreenWindow contentView] addSubview:view];
@@ -803,13 +788,11 @@ static std::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // 
 
 - (IBAction) toggleFullScreenDisplay:(id)sender
 {
-#if defined(MAC_OS_X_VERSION_10_7) && (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
 	if (_canUseMavericksFullScreen)
 	{
 		[masterWindow toggleFullScreen:nil];
 	}
 	else
-#endif
 	{
 		if ([self isFullScreen])
 		{
@@ -1256,7 +1239,7 @@ static std::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // 
 - (void)windowDidLoad
 {
 	NSRect newViewFrameRect = NSMakeRect(0.0f, (CGFloat)_statusBarHeight, (CGFloat)_localViewProps.clientWidth, (CGFloat)_localViewProps.clientHeight);
-	NSView<CocoaDisplayViewProtocol> *newView = (NSView<CocoaDisplayViewProtocol> *)[[[DisplayView alloc] initWithFrame:newViewFrameRect] autorelease];
+	NSView<CocoaDisplayViewProtocol> *newView = (NSView<CocoaDisplayViewProtocol> *)[[DisplayView alloc] initWithFrame:newViewFrameRect];
 	[self setView:newView];
 	
 	// Set up the master window that is associated with this window controller.
@@ -1271,31 +1254,26 @@ static std::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // 
 	[newView setInputManager:[emuControl inputManager]];
 	
 	// Set up the scaling factor if this is a Retina window
-	float scaleFactor = 1.0f;
-#if defined(MAC_OS_X_VERSION_10_7) && (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
-	if ([masterWindow respondsToSelector:@selector(backingScaleFactor)])
-	{
-		scaleFactor = [masterWindow backingScaleFactor];
-	}
+	CGFloat scaleFactor = 1.0f;
+	scaleFactor = [masterWindow backingScaleFactor];
     
 	if (_canUseMavericksFullScreen)
 	{
 		[masterWindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
 	}
-#endif
 	
 	// Set up some custom UI elements.
 	[microphoneGainMenuItem setView:microphoneGainControlView];
 	[outputVolumeMenuItem setView:outputVolumeControlView];
 	
 	// Set up the video output thread.
-	CocoaDSDisplayVideo *newDisplayOutput = [[[CocoaDSDisplayVideo alloc] init] autorelease];
+	CocoaDSDisplayVideo *newDisplayOutput = [[CocoaDSDisplayVideo alloc] init];
 	ClientDisplay3DView *cdv = [newView clientDisplayView];
 	
 	[newDisplayOutput setClientDisplay3DView:cdv];
 	
 	NSString *fontPath = [[NSBundle mainBundle] pathForResource:@"SourceSansPro-Bold" ofType:@"otf"];
-	cdv->Get3DPresenter()->SetHUDFontPath([fontPath cStringUsingEncoding:NSUTF8StringEncoding]);
+	cdv->Get3DPresenter()->SetHUDFontPath([fontPath fileSystemRepresentation]);
 	
 	if (scaleFactor != 1.0f)
 	{
@@ -1466,8 +1444,6 @@ static std::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // 
 	[self updateDisplayID];
 }
 
-#if defined(MAC_OS_X_VERSION_10_7) && (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
-
 - (NSSize)window:(NSWindow *)window willUseFullScreenContentSize:(NSSize)proposedSize
 {
 	return [[window screen] frame].size;
@@ -1481,7 +1457,9 @@ static std::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // 
 												NSApplicationPresentationAutoHideToolbar);
 	
 #if defined(MAC_OS_X_VERSION_10_11_2) && (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_11)
-	options |= NSApplicationPresentationDisableCursorLocationAssistance;
+	if (@available(macOS 10.11.2, *)) {
+		options |= NSApplicationPresentationDisableCursorLocationAssistance;
+	}
 #endif
 	
 	return options;
@@ -1508,8 +1486,6 @@ static std::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // 
 	[self setAssignedScreen:nil];
 	[self setIsShowingStatusBar:_masterStatusBarState];
 }
-
-#endif
 
 - (BOOL)validateToolbarItem:(NSToolbarItem *)theItem
 {
@@ -1655,12 +1631,7 @@ static std::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // 
 	if (localOGLContext != nil)
 	{
 		[localOGLContext clearDrawable];
-		[localOGLContext release];
 	}
-	
-	[localLayer release];
-	
-	[super dealloc];
 }
 
 #pragma mark Class Methods
@@ -2100,24 +2071,7 @@ static std::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // 
 		
 		localLayer = macOGLCDV->GetCALayer();
 		
-		// For macOS 10.8 Mountain Lion and later, we can use the CAOpenGLLayer directly. But for
-		// earlier versions of macOS, using the CALayer directly will cause too many strange issues,
-		// so we'll just keep using the old-school NSOpenGLContext for these older macOS versions.
-		if (IsOSXVersionSupported(10, 8, 0))
-		{
-			macOGLCDV->SetRenderToCALayer(true);
-		}
-		else
-		{
-#if defined(MAC_OS_X_VERSION_10_7) && (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
-			if ([self respondsToSelector:@selector(setWantsBestResolutionOpenGLSurface:)])
-			{
-				[self setWantsBestResolutionOpenGLSurface:YES];
-			}
-#endif
-			localOGLContext = ((MacOGLDisplayPresenter *)macOGLCDV->Get3DPresenter())->GetNSContext();
-			[localOGLContext retain];
-		}
+		macOGLCDV->SetRenderToCALayer(true);
 	}
 	
 	MacDisplayLayeredView *cdv = [localLayer clientDisplayView];
@@ -2132,12 +2086,7 @@ static std::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // 
 		return;
 	}
 	
-#if defined(MAC_OS_X_VERSION_10_6) && (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6)
-	if ([self respondsToSelector:@selector(setLayerContentsRedrawPolicy:)])
-	{
-		[self setLayerContentsRedrawPolicy:NSViewLayerContentsRedrawNever];
-	}
-#endif
+	[self setLayerContentsRedrawPolicy:NSViewLayerContentsRedrawNever];
 	
 	[self setLayer:localLayer];
 	[self setWantsLayer:YES];
@@ -2245,12 +2194,7 @@ static std::unordered_map<NSScreen *, DisplayWindowController *> _screenMap; // 
 		ClientDisplayPresenterProperties &props = [windowController localViewProperties];
 		NSRect newViewportRect = rect;
 		
-#if defined(MAC_OS_X_VERSION_10_7) && (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7)
-		if ([self respondsToSelector:@selector(convertRectToBacking:)])
-		{
-			newViewportRect = [self convertRectToBacking:rect];
-		}
-#endif
+		newViewportRect = [self convertRectToBacking:rect];
 		
 		// Calculate the view scale for the given client size.
 		double checkWidth = props.normalWidth;

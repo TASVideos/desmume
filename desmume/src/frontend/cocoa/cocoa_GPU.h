@@ -48,13 +48,12 @@
 
 #define VIDEO_FLUSH_TIME_LIMIT_OFFSET	8	// The amount of time, in seconds, to wait for a flush to occur on a given CVDisplayLink before stopping it.
 
-enum ClientDisplayBufferState
-{
-	ClientDisplayBufferState_Idle			= 0,	// The buffer has already been read and is currently idle. It is a candidate for a read or write operation.
-	ClientDisplayBufferState_Writing		= 1,	// The buffer is currently being written. It cannot be accessed.
-	ClientDisplayBufferState_Ready			= 2,	// The buffer was just written to, but has not been read yet. It is a candidate for a read or write operation.
-	ClientDisplayBufferState_PendingRead	= 3,	// The buffer has been marked that it will be read. It must not be accessed.
-	ClientDisplayBufferState_Reading		= 4		// The buffer is currently being read. It cannot be accessed.
+typedef NS_ENUM(NSInteger, ClientDisplayBufferState) {
+	ClientDisplayBufferState_Idle			= 0,	//!< The buffer has already been read and is currently idle. It is a candidate for a read or write operation.
+	ClientDisplayBufferState_Writing		= 1,	//!< The buffer is currently being written. It cannot be accessed.
+	ClientDisplayBufferState_Ready			= 2,	//!< The buffer was just written to, but has not been read yet. It is a candidate for a read or write operation.
+	ClientDisplayBufferState_PendingRead	= 3,	//!< The buffer has been marked that it will be read. It must not be accessed.
+	ClientDisplayBufferState_Reading		= 4		//!< The buffer is currently being read. It cannot be accessed.
 };
 
 class GPUEventHandlerOSX;
@@ -162,7 +161,7 @@ typedef std::map<CGDirectDisplayID, int64_t> DisplayLinkFlushTimeLimitMap;
 @property (assign) NSUInteger render3DThreads;
 @property (assign) BOOL render3DLineHack;
 @property (assign) NSUInteger render3DMultisampleSize;
-@property (retain) NSString *render3DMultisampleSizeString;
+@property (strong) NSString *render3DMultisampleSizeString;
 @property (assign) BOOL render3DTextureDeposterize;
 @property (assign) BOOL render3DTextureSmoothing;
 @property (assign) NSUInteger render3DTextureScalingFactor;
@@ -174,7 +173,7 @@ typedef std::map<CGDirectDisplayID, int64_t> DisplayLinkFlushTimeLimitMap;
 
 #ifdef ENABLE_SHARED_FETCH_OBJECT
 @property (readonly, nonatomic) GPUClientFetchObject *fetchObject;
-@property (readonly, nonatomic) MacClientSharedObject *sharedData;
+@property (weak, readonly, nonatomic) MacClientSharedObject *sharedData;
 
 - (void) setOutputList:(NSMutableArray *)theOutputList rwlock:(pthread_rwlock_t *)theRWLock;
 #endif
@@ -185,37 +184,3 @@ typedef std::map<CGDirectDisplayID, int64_t> DisplayLinkFlushTimeLimitMap;
 - (void) respondToPauseState:(BOOL)isPaused;
 
 @end
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-#ifdef ENABLE_SHARED_FETCH_OBJECT
-
-static void* RunFetchThread(void *arg);
-
-CVReturn MacDisplayLinkCallback(CVDisplayLinkRef displayLink,
-								const CVTimeStamp *inNow,
-								const CVTimeStamp *inOutputTime,
-								CVOptionFlags flagsIn,
-								CVOptionFlags *flagsOut,
-								void *displayLinkContext);
-#endif
-
-bool OSXOpenGLRendererInit();
-bool OSXOpenGLRendererBegin();
-void OSXOpenGLRendererEnd();
-bool OSXOpenGLRendererFramebufferDidResize(const bool isFBOSupported, size_t w, size_t h);
-
-bool CreateOpenGLRenderer();
-void DestroyOpenGLRenderer();
-void RequestOpenGLRenderer_3_2(bool request_3_2);
-void SetOpenGLRendererFunctions(bool (*initFunction)(),
-								bool (*beginOGLFunction)(),
-								void (*endOGLFunction)(),
-								bool (*resizeOGLFunction)(const bool isFBOSupported, size_t w, size_t h));
-
-#ifdef __cplusplus
-}
-#endif

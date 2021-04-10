@@ -43,14 +43,14 @@ enum FirmwareCfgMACAddrSetID
 	FirmwareCfgMACAddrSetID_Custom8 = 8
 };
 
-/********************************************************************************************
-	CocoaDSFirmware - OBJECTIVE-C CLASS
+/**
+	@class CocoaDSFirmware - OBJECTIVE-C CLASS
 
-	This is an Objective-C wrapper class for DeSmuME's firmware struct.
+	@brief This is an Objective-C wrapper class for DeSmuME's firmware struct.
  
 	Thread Safety:
 		All methods are thread-safe.
- ********************************************************************************************/
+ **/
 @interface CocoaDSFirmware : NSObject
 {
 	ClientExecutionControl *execControl;
@@ -76,13 +76,13 @@ enum FirmwareCfgMACAddrSetID
 @property (assign, nonatomic) NSInteger addressSelection;
 @property (assign, nonatomic) uint32_t firmwareMACAddressPendingValue;
 @property (readonly, nonatomic) uint32_t firmwareMACAddressValue;
-@property (retain) NSString *firmwareMACAddressPendingString;
-@property (retain) NSString *firmwareMACAddressString;
+@property (copy) NSString *firmwareMACAddressPendingString;
+@property (copy) NSString *firmwareMACAddressString;
 @property (assign, nonatomic) uint32_t customMACAddressValue;
-@property (retain) NSString *customMACAddress1String;
-@property (retain) NSString *customMACAddress2String;
-@property (retain) NSString *customMACAddress3String;
-@property (retain) NSString *customMACAddress4String;
+@property (copy) NSString *customMACAddress1String;
+@property (copy) NSString *customMACAddress2String;
+@property (copy) NSString *customMACAddress3String;
+@property (copy) NSString *customMACAddress4String;
 
 // Access Point Settings
 @property (assign, nonatomic) NSInteger ipv4Address_AP1_1;
@@ -102,7 +102,7 @@ enum FirmwareCfgMACAddrSetID
 @property (assign, nonatomic) NSInteger ipv4SecondaryDNS_AP1_3;
 @property (assign, nonatomic) NSInteger ipv4SecondaryDNS_AP1_4;
 @property (assign, nonatomic) NSInteger subnetMask_AP1;
-@property (retain) NSString *subnetMaskString_AP1;
+@property (copy) NSString *subnetMaskString_AP1;
 
 @property (assign, nonatomic) NSInteger ipv4Address_AP2_1;
 @property (assign, nonatomic) NSInteger ipv4Address_AP2_2;
@@ -121,7 +121,7 @@ enum FirmwareCfgMACAddrSetID
 @property (assign, nonatomic) NSInteger ipv4SecondaryDNS_AP2_3;
 @property (assign, nonatomic) NSInteger ipv4SecondaryDNS_AP2_4;
 @property (assign, nonatomic) NSInteger subnetMask_AP2;
-@property (retain) NSString *subnetMaskString_AP2;
+@property (copy) NSString *subnetMaskString_AP2;
 
 @property (assign, nonatomic) NSInteger ipv4Address_AP3_1;
 @property (assign, nonatomic) NSInteger ipv4Address_AP3_2;
@@ -140,14 +140,14 @@ enum FirmwareCfgMACAddrSetID
 @property (assign, nonatomic) NSInteger ipv4SecondaryDNS_AP3_3;
 @property (assign, nonatomic) NSInteger ipv4SecondaryDNS_AP3_4;
 @property (assign, nonatomic) NSInteger subnetMask_AP3;
-@property (retain) NSString *subnetMaskString_AP3;
+@property (copy) NSString *subnetMaskString_AP3;
 
 // User Settings
 @property (assign, nonatomic) NSInteger consoleType;
 @property (copy, nonatomic) NSString *nickname;
 @property (copy, nonatomic) NSString *message;
 @property (assign, nonatomic) NSInteger favoriteColor;
-@property (assign, nonatomic) NSDate *birthday;
+@property (weak, nonatomic) NSDate *birthday;
 @property (assign, nonatomic) NSInteger language;
 @property (assign, nonatomic) NSInteger backlightLevel;
 

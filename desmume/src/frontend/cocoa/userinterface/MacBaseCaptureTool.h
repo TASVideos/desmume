@@ -30,16 +30,8 @@
 
 @class MacClientSharedObject;
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_5
 @interface MacBaseCaptureToolDelegate : NSObject <NSWindowDelegate, DirectoryURLDragDestTextFieldProtocol>
-#else
-@interface MacBaseCaptureToolDelegate : NSObject <DirectoryURLDragDestTextFieldProtocol>
-#endif
 {
-	NSObject *dummyObject;
-	NSWindow *window;
-	DirectoryURLDragDestTextField *saveDirectoryPathTextField;
-	
 	MacClientSharedObject *sharedData;
 	
 	NSString *saveDirectoryPath;
@@ -56,9 +48,9 @@
 	NSInteger pixelScalerID;
 }
 
-@property (readonly) IBOutlet NSObject *dummyObject;
-@property (readonly) IBOutlet NSWindow *window;
-@property (readonly) IBOutlet DirectoryURLDragDestTextField *saveDirectoryPathTextField;
+@property (weak) IBOutlet NSObject *dummyObject;
+@property (weak) IBOutlet NSWindow *window;
+@property (weak) IBOutlet DirectoryURLDragDestTextField *saveDirectoryPathTextField;
 
 @property (retain) MacClientSharedObject *sharedData;
 
@@ -76,7 +68,6 @@
 @property (assign) NSInteger pixelScalerID;
 
 - (IBAction) chooseDirectoryPath:(id)sender;
-- (void) chooseDirectoryPathDidEnd:(NSOpenPanel *)sheet returnCode:(int)returnCode contextInfo:(void *)contextInfo;
 
 @end
 

@@ -48,7 +48,7 @@
 @synthesize inputProfileSheet;
 @synthesize inputProfileRenameSheet;
 @synthesize inputManager;
-@dynamic configInputTargetID;
+@synthesize configInputTargetID;
 @synthesize inputSettingsInEdit;
 
 - (id)initWithFrame:(NSRect)frame
@@ -86,10 +86,10 @@
 				{
 					NSArray *inputList = (NSArray *)[profileMappings objectForKey:mappingKey];
 					NSMutableArray *newInputList = [[NSMutableArray alloc] initWithArray:inputList copyItems:YES];
-					[reconstructedMappings setObject:[newInputList autorelease] forKey:mappingKey];
+					[reconstructedMappings setObject:newInputList forKey:mappingKey];
 				}
 				
-				[reconstructedProfile setObject:[reconstructedMappings autorelease] forKey:profileKey];
+				[reconstructedProfile setObject:reconstructedMappings forKey:profileKey];
 			}
 			else
 			{
@@ -97,7 +97,7 @@
 			}
 		}
 		
-		[defaultProfilesList addObject:[reconstructedProfile autorelease]];
+		[defaultProfilesList addObject:reconstructedProfile];
 	}
 	
 	savedProfilesList = [[NSMutableArray alloc] initWithCapacity:32];
@@ -110,31 +110,17 @@
 
 - (void)dealloc
 {
-	[configInputList release];
-	[inputSettingsMappings release];
-	[savedProfilesList release];
 	
 	[self setConfigInputTargetID:nil];
-	[self setInputSettingsInEdit:nil];
 	
-	[super dealloc];
 }
 
 #pragma mark Dynamic Properties
 - (void) setConfigInputTargetID:(NSString *)targetID
 {
-	if (targetID == nil)
-	{
-		[configInputTargetID release];
-	}
 	
-	configInputTargetID = [targetID retain];
+	configInputTargetID = [targetID copy];
 	[[self inputManager] setHidInputTarget:(targetID == nil) ? nil : self];
-}
-
-- (NSString *) configInputTargetID
-{
-	return configInputTargetID;
 }
 
 #pragma mark Class Methods
@@ -166,7 +152,7 @@
 
 - (void) loadSavedProfilesList
 {
-	NSArray *userDefaultsSavedProfilesList = (NSArray *)[[NSUserDefaults standardUserDefaults] arrayForKey:@"Input_SavedProfiles"];
+	NSArray *userDefaultsSavedProfilesList = [[NSUserDefaults standardUserDefaults] arrayForKey:@"Input_SavedProfiles"];
 	[savedProfilesList removeAllObjects];
 	
 	for (NSDictionary *theProfile in userDefaultsSavedProfilesList)
@@ -184,10 +170,10 @@
 				{
 					NSArray *inputList = (NSArray *)[profileMappings objectForKey:mappingKey];
 					NSMutableArray *newInputList = [[NSMutableArray alloc] initWithArray:inputList copyItems:YES];
-					[reconstructedMappings setObject:[newInputList autorelease] forKey:mappingKey];
+					[reconstructedMappings setObject:newInputList forKey:mappingKey];
 				}
 				
-				[reconstructedProfile setObject:[reconstructedMappings autorelease] forKey:profileKey];
+				[reconstructedProfile setObject:reconstructedMappings forKey:profileKey];
 			}
 			else
 			{
@@ -195,7 +181,7 @@
 			}
 		}
 		
-		[savedProfilesList addObject:[reconstructedProfile autorelease]];
+		[savedProfilesList addObject:reconstructedProfile];
 	}
 }
 
@@ -229,9 +215,9 @@
 			profileName = @"";
 		}
 		
-		NSMenuItem *newProfileMenuItem = [[[NSMenuItem alloc] initWithTitle:profileName
+		NSMenuItem *newProfileMenuItem = [[NSMenuItem alloc] initWithTitle:profileName
 																	 action:@selector(profileSelect:)
-															  keyEquivalent:@""] autorelease];
+															  keyEquivalent:@""];
 		[newProfileMenuItem setTag:profileIndex];
 		[newProfileMenuItem setTarget:self];
 		
@@ -260,9 +246,9 @@
 				profileName = @"";
 			}
 			
-			NSMenuItem *newProfileMenuItem = [[[NSMenuItem alloc] initWithTitle:profileName
+			NSMenuItem *newProfileMenuItem = [[NSMenuItem alloc] initWithTitle:profileName
 																		 action:@selector(profileSelect:)
-																  keyEquivalent:@""] autorelease];
+																  keyEquivalent:@""];
 			[newProfileMenuItem setTag:profileIndex];
 			[newProfileMenuItem setTarget:self];
 			
@@ -405,16 +391,16 @@
 {
     [sheet orderOut:self];
 	
-	NSOutlineView *outlineView = (NSOutlineView *)contextInfo;
+	NSOutlineView *outlineView = (__bridge NSOutlineView *)contextInfo;
 	NSMutableDictionary *editedDeviceInfo = (NSMutableDictionary *)[inputSettingsController content];
 	NSMutableDictionary *deviceInfoInEdit = [self inputSettingsInEdit];
 	
 	switch (returnCode)
 	{
-		case NSCancelButton:
+		case NSModalResponseCancel:
 			break;
 			
-		case NSOKButton:
+		case NSModalResponseOK:
 			[deviceInfoInEdit setDictionary:editedDeviceInfo];
 			[self setMappingUsingDeviceInfoDictionary:deviceInfoInEdit];
 			[outlineView reloadItem:deviceInfoInEdit reloadChildren:NO];
@@ -534,12 +520,12 @@
 			}
 			else
 			{
-				outCell = [[[NSCell alloc] init] autorelease];
+				outCell = [[NSCell alloc] init];
 			}
 		}
 		else
 		{
-			outCell = [[[NSCell alloc] init] autorelease];
+			outCell = [[NSCell alloc] init];
 		}
 	}
 	else if ([columnID isEqualToString:@"InputDeviceColumn"])
@@ -568,14 +554,14 @@
 		}
 		else
 		{
-			outCell = [[[NSCell alloc] init] autorelease];
+			outCell = [[NSCell alloc] init];
 		}
 	}
 	else if ([columnID isEqualToString:@"RemoveInputColumn"])
 	{
 		if (![item isKindOfClass:[NSDictionary class]])
 		{
-			outCell = [[[NSCell alloc] init] autorelease];
+			outCell = [[NSCell alloc] init];
 		}
 	}
 	
@@ -828,18 +814,36 @@
 		[self updateCustomTurboPatternControls:turboPatternControl];
 	}
 	
-	[NSApp beginSheet:theSheet
-	   modalForWindow:prefWindow
-		modalDelegate:self
-	   didEndSelector:@selector(didEndSettingsSheet:returnCode:contextInfo:)
-		  contextInfo:outlineView];
+	[prefWindow beginSheet:theSheet
+		 completionHandler:^(NSModalResponse returnCode) {
+		NSMutableDictionary *editedDeviceInfo = (NSMutableDictionary *)[self->inputSettingsController content];
+		NSMutableDictionary *deviceInfoInEdit = [self inputSettingsInEdit];
+		
+		switch (returnCode)
+		{
+			case NSModalResponseCancel:
+				break;
+				
+			case NSModalResponseOK:
+				[deviceInfoInEdit setDictionary:editedDeviceInfo];
+				[self setMappingUsingDeviceInfoDictionary:deviceInfoInEdit];
+				[outlineView reloadItem:deviceInfoInEdit reloadChildren:NO];
+				break;
+				
+			default:
+				break;
+		}
+		
+		[self->inputSettingsController setContent:nil];
+		[self setInputSettingsInEdit:nil];
+	}];
 }
 
 - (IBAction) closeSettingsSheet:(id)sender
 {
 	NSWindow *sheet = [(NSControl *)sender window];
 	[sheet makeFirstResponder:nil]; // Force end of editing of any text fields.
-    [NSApp endSheet:sheet returnCode:[CocoaDSUtil getIBActionSenderTag:sender]];
+    [prefWindow endSheet:sheet returnCode:[CocoaDSUtil getIBActionSenderTag:sender]];
 }
 
 - (IBAction) updateCustomTurboPatternControls:(id)sender
@@ -864,7 +868,7 @@
 		[turboPatternControl setSelected:isPressedBit forSegment:i];
 	}
 	
-	float controlWidth = (turboPatternLength * (24.0f + 1.5f));
+	CGFloat controlWidth = (turboPatternLength * (24.0f + 1.5f));
 	NSRect oldSheetFrame = [theSheet frame];
 	NSRect newSheetFrame = oldSheetFrame;
 	
@@ -963,22 +967,22 @@
 	{
 		NSArray *inputList = (NSArray *)[profileMappings objectForKey:mappingKey];
 		NSMutableArray *newInputList = [[NSMutableArray alloc] initWithArray:inputList copyItems:YES];
-		[reconstructedMappings setObject:[newInputList autorelease] forKey:mappingKey];
+		[reconstructedMappings setObject:newInputList forKey:mappingKey];
 	}
 	
 	NSMutableDictionary *newProfile = [NSMutableDictionary dictionaryWithObjectsAndKeys:
 									   newProfileName, @"Name",
 									   [NSNumber numberWithBool:NO], @"IsDefaultType",
-									   [reconstructedMappings autorelease], @"Mappings",
+									   reconstructedMappings, @"Mappings",
 									   nil];
 	
 	[savedProfilesList addObject:newProfile];
 	
 	const NSInteger profileIndex = _defaultProfileListCount + [savedProfilesList count] - 1;
 	NSMenu *profileMenu = [inputProfileMenu menu];
-	NSMenuItem *newProfileMenuItem = [[[NSMenuItem alloc] initWithTitle:newProfileName
+	NSMenuItem *newProfileMenuItem = [[NSMenuItem alloc] initWithTitle:newProfileName
 																 action:@selector(profileSelect:)
-														  keyEquivalent:@""] autorelease];
+														  keyEquivalent:@""];
 	[newProfileMenuItem setTag:profileIndex];
 	[newProfileMenuItem setTarget:self];
 	
@@ -1000,11 +1004,10 @@
 
 - (IBAction) profileView:(id)sender
 {
-	[NSApp beginSheet:inputProfileSheet
-	   modalForWindow:prefWindow
-		modalDelegate:self
-	   didEndSelector:@selector(didEndProfileSheet:returnCode:contextInfo:)
-		  contextInfo:nil];
+	[prefWindow beginSheet:inputProfileSheet
+		 completionHandler:^(NSModalResponse returnCode) {
+		
+	}];
 }
 
 - (IBAction) profileApply:(id)sender
@@ -1026,11 +1029,10 @@
 
 - (IBAction) profileRename:(id)sender
 {
-	[NSApp beginSheet:inputProfileRenameSheet
-	   modalForWindow:prefWindow
-		modalDelegate:self
-	   didEndSelector:@selector(didEndProfileRenameSheet:returnCode:contextInfo:)
-		  contextInfo:nil];
+	[prefWindow beginSheet:inputProfileRenameSheet
+		 completionHandler:^(NSModalResponse returnCode) {
+		
+	}];
 }
 
 - (IBAction) profileSave:(id)sender
@@ -1041,7 +1043,7 @@
 		return;
 	}
 	
-	[selectedProfile setValue:[[[NSMutableDictionary alloc] initWithDictionary:[inputManager inputMappings] copyItems:YES] autorelease] forKey:@"Mappings"];
+	[selectedProfile setValue:[[NSMutableDictionary alloc] initWithDictionary:[inputManager inputMappings] copyItems:YES] forKey:@"Mappings"];
 	[[NSUserDefaults standardUserDefaults] setObject:savedProfilesList forKey:@"Input_SavedProfiles"];
 }
 
@@ -1063,9 +1065,9 @@
 	// Add the "no items" menu item if there are no profiles saved.
 	if ([savedProfilesList count] < 1)
 	{
-		NSMenuItem *noSavedConfigItem = [[[NSMenuItem alloc] initWithTitle:NSSTRING_INPUTPREF_NO_SAVED_PROFILES
+		NSMenuItem *noSavedConfigItem = [[NSMenuItem alloc] initWithTitle:NSSTRING_INPUTPREF_NO_SAVED_PROFILES
 																	 action:NULL
-															  keyEquivalent:@""] autorelease];
+															  keyEquivalent:@""];
 		[noSavedConfigItem setEnabled:NO];
 		[profileMenu insertItem:noSavedConfigItem atIndex:profileIndex+1];
 	}
@@ -1111,14 +1113,14 @@
 {
 	NSWindow *sheet = [(NSControl *)sender window];
 	[sheet makeFirstResponder:nil]; // Force end of editing of any text fields.
-	[NSApp endSheet:sheet returnCode:[CocoaDSUtil getIBActionSenderTag:sender]];
+	[prefWindow endSheet:sheet returnCode:[CocoaDSUtil getIBActionSenderTag:sender]];
 }
 
 - (IBAction) closeProfileRenameSheet:(id)sender
 {
 	NSWindow *sheet = [(NSControl *)sender window];
 	[sheet makeFirstResponder:nil]; // Force end of editing of any text fields.
-	[NSApp endSheet:sheet returnCode:[CocoaDSUtil getIBActionSenderTag:sender]];
+	[prefWindow endSheet:sheet returnCode:[CocoaDSUtil getIBActionSenderTag:sender]];
 }
 
 - (IBAction) audioFileChoose:(id)sender
@@ -1155,14 +1157,8 @@
 						  @"wav",
 						  nil];
 	
-	// The NSOpenPanel method -(NSInt)runModalForDirectory:file:types:
-	// is deprecated in Mac OS X v10.6.
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_5
 	[panel setAllowedFileTypes:fileTypes];
 	const NSInteger buttonClicked = [panel runModal];
-#else
-	const NSInteger buttonClicked = [panel runModalForDirectory:nil file:nil types:fileTypes];
-#endif
 	
 	if (buttonClicked == NSFileHandlingPanelOKButton)
 	{

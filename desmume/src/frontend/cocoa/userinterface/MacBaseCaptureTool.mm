@@ -69,8 +69,6 @@
 	[self setSharedData:nil];
 	[self setSaveDirectoryPath:nil];
 	[self setRomName:nil];
-	
-	[super dealloc];
 }
 
 - (IBAction) chooseDirectoryPath:(id)sender
@@ -83,38 +81,21 @@
 	[panel setAllowsMultipleSelection:NO];
 	[panel setTitle:NSSTRING_TITLE_SAVE_SCREENSHOT_PANEL];
 	
-#if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_5
 	[panel beginSheetModalForWindow:[self window]
 				  completionHandler:^(NSInteger result) {
-					  [self chooseDirectoryPathDidEnd:panel returnCode:result contextInfo:nil];
-				  } ];
-#else
-	[panel beginSheetForDirectory:nil
-							 file:nil
-							types:nil
-				   modalForWindow:[self window]
-					modalDelegate:self
-				   didEndSelector:@selector(chooseDirectoryPathDidEnd:returnCode:contextInfo:)
-					  contextInfo:nil];
-#endif
-}
-
-- (void) chooseDirectoryPathDidEnd:(NSOpenPanel *)sheet returnCode:(int)returnCode contextInfo:(void *)contextInfo
-{
-	[sheet orderOut:self];
-	
-	if (returnCode == NSCancelButton)
-	{
-		return;
-	}
-	
-	NSURL *selectedFileURL = [[sheet URLs] lastObject]; //hopefully also the first object
-	if(selectedFileURL == nil)
-	{
-		return;
-	}
-	
-	[self setSaveDirectoryPath:[selectedFileURL path]];
+		if (result == NSModalResponseCancel)
+		{
+			return;
+		}
+		
+		NSURL *selectedFileURL = [[panel URLs] firstObject];
+		if(selectedFileURL == nil)
+		{
+			return;
+		}
+		
+		[self setSaveDirectoryPath:[selectedFileURL path]];
+	} ];
 }
 
 #pragma mark DirectoryURLDragDestTextFieldProtocol Protocol

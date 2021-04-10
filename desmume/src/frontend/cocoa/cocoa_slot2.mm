@@ -76,7 +76,7 @@
 @implementation CocoaDSSlot2Manager
 
 @synthesize deviceList;
-@dynamic currentDevice;
+@synthesize currentDevice;
 @synthesize slot2StatusText;
 @dynamic mpcfFileSearchURL;
 @dynamic gbaCartridgeURL;
@@ -103,13 +103,6 @@
 	return self;
 }
 
-- (void) dealloc
-{
-	[deviceList release];
-	
-	[super dealloc];
-}
-
 - (void) setCurrentDevice:(CocoaDSSlot2Device *)theDevice
 {
 	NDS_SLOT2_TYPE theType = NDS_SLOT2_NONE;
@@ -117,22 +110,15 @@
 	if (theDevice != nil)
 	{
 		theType = [theDevice type];
-		[theDevice retain];
 	}
 	
 	bool slotDidChange = slot2_Change(theType);
 	if (slotDidChange || currentDevice == nil)
 	{
-		[currentDevice release];
 		currentDevice = theDevice;
 	}
 	
 	[self updateStatus];
-}
-
-- (CocoaDSSlot2Device *) currentDevice
-{
-	return currentDevice;
 }
 
 - (void) setMpcfFileSearchURL:(NSURL *)theURL
@@ -146,9 +132,7 @@
 		[fileManager fileExistsAtPath:thePath isDirectory:&isDirectory];
 		
 		CFlash_Mode = (isDirectory) ? ADDON_CFLASH_MODE_Path : ADDON_CFLASH_MODE_File;
-		CFlash_Path = [thePath cStringUsingEncoding:NSUTF8StringEncoding];
-		
-		[fileManager release];
+		CFlash_Path = [thePath fileSystemRepresentation];
 	}
 	else
 	{
@@ -166,7 +150,7 @@
 {
 	if (fileURL != nil)
 	{
-		GBACartridge_RomPath = [[fileURL path] cStringUsingEncoding:NSUTF8StringEncoding];
+		GBACartridge_RomPath = [fileURL fileSystemRepresentation];
 	}
 	else
 	{
@@ -183,7 +167,7 @@
 {
 	if (fileURL != nil)
 	{
-		GBACartridge_SRAMPath = [[fileURL path] cStringUsingEncoding:NSUTF8StringEncoding];
+		GBACartridge_SRAMPath = [fileURL fileSystemRepresentation];
 	}
 	else
 	{
@@ -256,7 +240,7 @@
 		}
 		
 		// Create a new device wrapper object and add it to the device list.
-		CocoaDSSlot2Device *newCdsDevice = [[[CocoaDSSlot2Device alloc] initWithDeviceData:theDevice] autorelease];
+		CocoaDSSlot2Device *newCdsDevice = [[CocoaDSSlot2Device alloc] initWithDeviceData:theDevice];
 		[deviceList addObject:newCdsDevice];
 		
 		// Only enable the SLOT-2 devices that are ready for end-user usage, and leave
@@ -366,16 +350,15 @@
 
 void OSXSendForceFeedbackState(bool enable)
 {
-	NSAutoreleasePool *tempPool = [[NSAutoreleasePool alloc] init];
-	
+	@autoreleasepool {
 	NSDictionary *ffProperties = [NSDictionary dictionaryWithObjectsAndKeys:
 								  [NSNumber numberWithBool:enable], @"ffState",
-								  [NSNumber numberWithInteger:RUMBLE_ITERATIONS_RUMBLE_PAK], @"iterations",
+								  @(RUMBLE_ITERATIONS_RUMBLE_PAK), @"iterations",
 								  nil];
 	
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"org.desmume.DeSmuME.sendForceFeedback"
 														object:nil
 													  userInfo:ffProperties];
 	
-	[tempPool release];
+	}
 }

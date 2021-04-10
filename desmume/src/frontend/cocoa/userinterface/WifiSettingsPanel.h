@@ -19,15 +19,8 @@
 
 class ClientExecutionControl;
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_5
 @interface WifiSettingsPanelDelegate : NSObject <NSWindowDelegate>
-#else
-@interface WifiSettingsPanelDelegate : NSObject
-#endif
 {
-	NSObjectController *firmwarePanelController;
-	NSPopUpButton *bridgeDevicePopUpButton;
-	
 	ClientExecutionControl *execControl;
 	NSString *_libpcapDeviceSelectionName;
 	
@@ -39,16 +32,16 @@ class ClientExecutionControl;
 
 @property (assign) ClientExecutionControl *execControl;
 
-@property (assign) IBOutlet NSObjectController *firmwarePanelController;
-@property (assign) IBOutlet NSPopUpButton *bridgeDevicePopUpButton;
+@property (weak) IBOutlet NSObjectController *firmwarePanelController;
+@property (weak) IBOutlet NSPopUpButton *bridgeDevicePopUpButton;
 
 @property (assign) NSInteger wifiEmulationMode;
 @property (assign) NSInteger bridgeDeviceSelection;
 
-@property (assign) NSString *myMACAddress1String;
-@property (assign) NSString *myMACAddress2String;
-@property (assign) NSString *myMACAddress3String;
-@property (assign) NSString *myMACAddress4String;
+@property (copy) NSString *myMACAddress1String;
+@property (copy) NSString *myMACAddress2String;
+@property (copy) NSString *myMACAddress3String;
+@property (copy) NSString *myMACAddress4String;
 
 - (void) updateCustomMACAddressStrings;
 - (void) fillLibpcapDeviceMenu;

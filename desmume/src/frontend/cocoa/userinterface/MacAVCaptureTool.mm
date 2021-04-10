@@ -30,6 +30,9 @@
 #ifdef ENABLE_APPLE_METAL
 #include "MacMetalDisplayView.h"
 #endif
+
+static void* RunAVCaptureCloseThread(void *arg);
+
 /*
 extern "C"
 {
@@ -1262,7 +1265,7 @@ ClientAVCaptureError FFmpegFileStream::WriteOneFrame(const AVStreamWriteParam &p
 
 - (void) readUserDefaults
 {
-	[self setSaveDirectoryPath:[[NSUserDefaults standardUserDefaults] stringForKey:@"AVCaptureTool_DirectoryPath"]];
+	[self setSaveDirectoryPath:[[[NSUserDefaults standardUserDefaults] URLForKey:@"AVCaptureTool_DirectoryPath"] path]];
 	[self setFormatID:[[NSUserDefaults standardUserDefaults] integerForKey:@"AVCaptureTool_FileFormat"]];
 	[self setUseDeposterize:[[NSUserDefaults standardUserDefaults] boolForKey:@"AVCaptureTool_Deposterize"]];
 	[self setOutputFilterID:[[NSUserDefaults standardUserDefaults] integerForKey:@"AVCaptureTool_OutputFilter"]];
@@ -1280,7 +1283,7 @@ ClientAVCaptureError FFmpegFileStream::WriteOneFrame(const AVStreamWriteParam &p
 
 - (void) writeUserDefaults
 {
-	[[NSUserDefaults standardUserDefaults] setObject:[self saveDirectoryPath] forKey:@"AVCaptureTool_DirectoryPath"];
+	[[NSUserDefaults standardUserDefaults] setURL:[NSURL fileURLWithPath:[self saveDirectoryPath]] forKey:@"AVCaptureTool_DirectoryPath"];
 	[[NSUserDefaults standardUserDefaults] setInteger:[self formatID] forKey:@"AVCaptureTool_FileFormat"];
 	[[NSUserDefaults standardUserDefaults] setBool:[self useDeposterize] forKey:@"AVCaptureTool_Deposterize"];
 	[[NSUserDefaults standardUserDefaults] setInteger:[self outputFilterID] forKey:@"AVCaptureTool_OutputFilter"];
@@ -1335,11 +1338,8 @@ ClientAVCaptureError FFmpegFileStream::WriteOneFrame(const AVStreamWriteParam &p
 	if (!isDirectoryFound)
 	{
 		[self chooseDirectoryPath:self];
-		[fileManager release];
 		return;
 	}
-	
-	[fileManager release];
 	
 	ClientAVCaptureObject *newCaptureObject = new ClientAVCaptureObject([self videoWidth], [self videoHeight]);
 	
@@ -1348,7 +1348,7 @@ ClientAVCaptureError FFmpegFileStream::WriteOneFrame(const AVStreamWriteParam &p
 	param.refObject					= newCaptureObject;
 	param.sharedData				= [self sharedData];
 	param.formatID					= [self formatID];
-	param.savePath					= std::string([savePath cStringUsingEncoding:NSUTF8StringEncoding]);
+	param.savePath					= std::string([savePath fileSystemRepresentation]);
 	param.romName					= std::string([romName cStringUsingEncoding:NSUTF8StringEncoding]);
 	param.useDeposterize			= [self useDeposterize] ? true : false;
 	param.outputFilterID			= (OutputFilterTypeID)[self outputFilterID];
@@ -1379,7 +1379,6 @@ ClientAVCaptureError FFmpegFileStream::WriteOneFrame(const AVStreamWriteParam &p
 	NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
 	[dateFormatter setDateFormat:@"yyyyMMdd_HH-mm-ss.SSS "];
 	NSString *fileNameNSString = [[dateFormatter stringFromDate:[NSDate date]] stringByAppendingString:[NSString stringWithCString:param.romName.c_str() encoding:NSUTF8StringEncoding]];
-	[dateFormatter release];
 	
 	std::string fileName = param.savePath + "/" + std::string([fileNameNSString cStringUsingEncoding:NSUTF8StringEncoding]);
 	

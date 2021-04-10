@@ -27,6 +27,8 @@
 #include "MacMetalDisplayView.h"
 #endif
 
+static void* RunFileWriteThread(void *arg);
+
 @implementation MacScreenshotCaptureToolDelegate
 
 - (id)init
@@ -64,18 +66,15 @@
 	if (!isDirectoryFound)
 	{
 		[self chooseDirectoryPath:self];
-		[fileManager release];
 		return;
 	}
-	
-	[fileManager release];
 	
 	// Note: We're allocating the parameter's memory block here, but we will be freeing it once we copy it in the detached thread.
 	MacCaptureToolParams *param = new MacCaptureToolParams;
 	param->refObject				= NULL;
 	param->sharedData				= [self sharedData];
 	param->formatID					= [self formatID];
-	param->savePath					= std::string([savePath cStringUsingEncoding:NSUTF8StringEncoding]);
+	param->savePath					= std::string([savePath fileSystemRepresentation]);
 	param->romName					= std::string([romName cStringUsingEncoding:NSUTF8StringEncoding]);
 	param->useDeposterize			= [self useDeposterize] ? true : false;
 	param->outputFilterID			= (OutputFilterTypeID)[self outputFilterID];
@@ -194,7 +193,7 @@ static void* RunFileWriteThread(void *arg)
 	param.cdpProperty.gapDistance	= (double)DS_DISPLAY_UNSCALED_GAP * param.cdpProperty.gapScale;
 	
 	// Render the frame to an NSBitmapImageRep.
-	NSAutoreleasePool *autoreleasePool = [[NSAutoreleasePool alloc] init];
+	@autoreleasepool {
 	
 	NSUInteger w = param.cdpProperty.clientWidth;
 	NSUInteger h = param.cdpProperty.clientHeight;
@@ -211,7 +210,6 @@ static void* RunFileWriteThread(void *arg)
 																		  bitsPerPixel:32];
 	if (newImageRep == nil)
 	{
-		[autoreleasePool release];
 		return NULL;
 	}
 	
@@ -224,8 +222,6 @@ static void* RunFileWriteThread(void *arg)
 	{
 		if ([(MetalDisplayViewSharedData *)param.sharedData device] == nil)
 		{
-			[newImageRep release];
-			[autoreleasePool release];
 			return NULL;
 		}
 		
@@ -288,7 +284,6 @@ static void* RunFileWriteThread(void *arg)
 	NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
 	[dateFormatter setDateFormat:@"yyyyMMdd_HH-mm-ss.SSS "];
 	NSString *fileName = [[dateFormatter stringFromDate:[NSDate date]] stringByAppendingString:[NSString stringWithCString:param.romName.c_str() encoding:NSUTF8StringEncoding]];
-	[dateFormatter release];
 	
 	NSString *savePath = [NSString stringWithCString:param.savePath.c_str() encoding:NSUTF8StringEncoding];
 	NSURL *fileURL = [NSURL fileURLWithPath:[savePath stringByAppendingPathComponent:fileName]];
@@ -297,8 +292,6 @@ static void* RunFileWriteThread(void *arg)
 	// Clean up.
 	delete cdp;
 	
-	[newImageRep release];
-	[autoreleasePool release];
-	
 	return NULL;
+	}
 }

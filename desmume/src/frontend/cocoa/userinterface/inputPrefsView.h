@@ -22,35 +22,8 @@
 @class InputProfileController;
 
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_5
 @interface InputPrefsView : NSView <InputHIDManagerTarget, NSOutlineViewDelegate, NSOutlineViewDataSource>
-#else
-@interface InputPrefsView : NSView <InputHIDManagerTarget>
-#endif
 {
-	NSObject *dummyObject;
-	NSWindow *prefWindow;
-	NSPopUpButton *inputProfileMenu;
-	NSButton *inputProfilePreviousButton;
-	NSButton *inputProfileNextButton;
-	NSOutlineView *inputPrefOutlineView;
-	NSObjectController *inputSettingsController;
-	InputProfileController *inputProfileController;
-	
-	NSWindow *inputProfileSheet;
-	NSWindow *inputProfileRenameSheet;
-	NSWindow *inputSettingsNDSInput;
-	NSWindow *inputSettingsMicrophone;
-	NSWindow *inputSettingsTouch;
-	NSWindow *inputSettingsLoadStateSlot;
-	NSWindow *inputSettingsSaveStateSlot;
-	NSWindow *inputSettingsSetSpeedLimit;
-	NSWindow *inputSettingsGPUState;
-	NSWindow *inputSettingsPaddleController;
-	
-	NSSegmentedControl *turboPatternControl;
-	
-	InputManager *inputManager;
 	NSString *configInputTargetID;
 	NSMutableDictionary *configInputList;
 	NSMutableDictionary *inputSettingsInEdit;
@@ -62,31 +35,31 @@
 	NSMutableArray *savedProfilesList;
 }
 
-@property (readonly) IBOutlet NSObject *dummyObject;
-@property (readonly) IBOutlet NSWindow *prefWindow;
-@property (readonly) IBOutlet NSPopUpButton *inputProfileMenu;
-@property (readonly) IBOutlet NSButton *inputProfilePreviousButton;
-@property (readonly) IBOutlet NSButton *inputProfileNextButton;
-@property (readonly) IBOutlet NSOutlineView *inputPrefOutlineView;
-@property (readonly) IBOutlet NSObjectController *inputSettingsController;
-@property (readonly) IBOutlet InputProfileController *inputProfileController;
+@property (weak) IBOutlet NSObject *dummyObject;
+@property (weak) IBOutlet NSWindow *prefWindow;
+@property (weak) IBOutlet NSPopUpButton *inputProfileMenu;
+@property (weak) IBOutlet NSButton *inputProfilePreviousButton;
+@property (weak) IBOutlet NSButton *inputProfileNextButton;
+@property (weak) IBOutlet NSOutlineView *inputPrefOutlineView;
+@property (weak) IBOutlet NSObjectController *inputSettingsController;
+@property (weak) IBOutlet InputProfileController *inputProfileController;
 
-@property (readonly) IBOutlet NSWindow *inputProfileSheet;
-@property (readonly) IBOutlet NSWindow *inputProfileRenameSheet;
-@property (readonly) IBOutlet NSWindow *inputSettingsNDSInput;
-@property (readonly) IBOutlet NSWindow *inputSettingsMicrophone;
-@property (readonly) IBOutlet NSWindow *inputSettingsTouch;
-@property (readonly) IBOutlet NSWindow *inputSettingsLoadStateSlot;
-@property (readonly) IBOutlet NSWindow *inputSettingsSaveStateSlot;
-@property (readonly) IBOutlet NSWindow *inputSettingsSetSpeedLimit;
-@property (readonly) IBOutlet NSWindow *inputSettingsGPUState;
-@property (readonly) IBOutlet NSWindow *inputSettingsPaddleController;
+@property (weak) IBOutlet NSWindow *inputProfileSheet;
+@property (weak) IBOutlet NSWindow *inputProfileRenameSheet;
+@property (weak) IBOutlet NSWindow *inputSettingsNDSInput;
+@property (weak) IBOutlet NSWindow *inputSettingsMicrophone;
+@property (weak) IBOutlet NSWindow *inputSettingsTouch;
+@property (weak) IBOutlet NSWindow *inputSettingsLoadStateSlot;
+@property (weak) IBOutlet NSWindow *inputSettingsSaveStateSlot;
+@property (weak) IBOutlet NSWindow *inputSettingsSetSpeedLimit;
+@property (weak) IBOutlet NSWindow *inputSettingsGPUState;
+@property (weak) IBOutlet NSWindow *inputSettingsPaddleController;
 
-@property (readonly) IBOutlet NSSegmentedControl *turboPatternControl;
+@property (weak) IBOutlet NSSegmentedControl *turboPatternControl;
 
-@property (readonly) IBOutlet InputManager *inputManager;
-@property (retain) NSString *configInputTargetID;
-@property (retain) NSMutableDictionary *inputSettingsInEdit;
+@property (weak) IBOutlet InputManager *inputManager;
+@property (nonatomic, copy) NSString *configInputTargetID;
+@property (strong) NSMutableDictionary *inputSettingsInEdit;
 
 - (void) initSettingsSheets;
 - (void) loadSavedProfilesList;
@@ -98,9 +71,6 @@
 - (void) setMappingUsingDeviceInfoDictionary:(NSMutableDictionary *)deviceInfo;
 - (BOOL) doesProfileNameExist:(NSString *)profileName;
 - (void) updateSelectedProfileName;
-- (void) didEndSettingsSheet:(NSWindow *)sheet returnCode:(NSInteger)returnCode contextInfo:(void *)contextInfo;
-- (void) didEndProfileSheet:(NSWindow *)sheet returnCode:(NSInteger)returnCode contextInfo:(void *)contextInfo;
-- (void) didEndProfileRenameSheet:(NSWindow *)sheet returnCode:(NSInteger)returnCode contextInfo:(void *)contextInfo;
 
 - (IBAction) setInputAdd:(id)sender;
 - (IBAction) removeInput:(id)sender;

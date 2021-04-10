@@ -19,20 +19,11 @@
 #import "InputManager.h"
 
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_5
 @interface InputProfileController : NSObjectController <NSOutlineViewDelegate, NSOutlineViewDataSource>
-#else
-@interface InputProfileController : NSObjectController
-#endif
-{
-	NSObject *dummyObject;
-	InputManager *inputManager;
-	NSOutlineView *profileOutlineView;
-}
 
-@property (readonly) IBOutlet NSObject *dummyObject;
-@property (readonly) IBOutlet InputManager *inputManager;
-@property (readonly) IBOutlet NSOutlineView *profileOutlineView;
+@property (weak) IBOutlet NSObject *dummyObject;
+@property (weak) IBOutlet InputManager *inputManager;
+@property (weak) IBOutlet NSOutlineView *profileOutlineView;
 
 - (NSString *) commandTagFromInputList:(NSArray *)inputList;
 

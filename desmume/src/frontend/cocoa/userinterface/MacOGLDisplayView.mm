@@ -77,7 +77,7 @@
 void MacOGLClientFetchObject::operator delete(void *ptr)
 {
 	MacOGLClientFetchObject *fetchObjectPtr = (MacOGLClientFetchObject *)ptr;
-	[(MacClientSharedObject *)(fetchObjectPtr->GetClientData()) release];
+	CFBridgingRelease(fetchObjectPtr->GetClientData());
 	
 	CGLContextObj context = fetchObjectPtr->GetContext();
 	
@@ -87,7 +87,7 @@ void MacOGLClientFetchObject::operator delete(void *ptr)
 		CGLContextObj prevContext = CGLGetCurrentContext();
 		CGLSetCurrentContext(context);
 		
-		[fetchObjectPtr->GetNSContext() release];
+//		[fetchObjectPtr->GetNSContext() release];
 		delete contextInfo;
 		::operator delete(ptr);
 		
@@ -103,26 +103,15 @@ MacOGLClientFetchObject::MacOGLClientFetchObject()
 	// [NSOpenGLContext CGLContextObj] is available on macOS 10.5 Leopard, but
 	// [NSOpenGLContext initWithCGLContextObj:] is only available on macOS 10.6
 	// Snow Leopard.
-	bool useContext_3_2 = false;
+	bool useContext_3_2 = true;
 	NSOpenGLPixelFormatAttribute attributes[] = {
 		NSOpenGLPFAColorSize, (NSOpenGLPixelFormatAttribute)24,
 		NSOpenGLPFAAlphaSize, (NSOpenGLPixelFormatAttribute)8,
 		NSOpenGLPFADepthSize, (NSOpenGLPixelFormatAttribute)0,
 		NSOpenGLPFAStencilSize, (NSOpenGLPixelFormatAttribute)0,
-		(NSOpenGLPixelFormatAttribute)0, (NSOpenGLPixelFormatAttribute)0,
+		NSOpenGLPFAOpenGLProfile, (NSOpenGLPixelFormatAttribute)NSOpenGLProfileVersion3_2Core,
 		(NSOpenGLPixelFormatAttribute)0
 	};
-	
-#ifdef _OGLDISPLAYOUTPUT_3_2_H_
-	// If we can support a 3.2 Core Profile context, then request that in our
-	// pixel format attributes.
-	useContext_3_2 = IsOSXVersionSupported(10, 7, 0);
-	if (useContext_3_2)
-	{
-		attributes[8] = NSOpenGLPFAOpenGLProfile;
-		attributes[9] = (NSOpenGLPixelFormatAttribute)NSOpenGLProfileVersion3_2Core;
-	}
-#endif
 	
 	NSOpenGLPixelFormat *nsPixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attributes];
 	if (nsPixelFormat == nil)
@@ -138,25 +127,21 @@ MacOGLClientFetchObject::MacOGLClientFetchObject()
 	_nsContext = [[NSOpenGLContext alloc] initWithFormat:nsPixelFormat shareContext:nil];
 	_context = (CGLContextObj)[_nsContext CGLContextObj];
 	
-	[nsPixelFormat release];
-	
 	CGLContextObj prevContext = CGLGetCurrentContext();
 	CGLSetCurrentContext(_context);
 	
-#ifdef _OGLDISPLAYOUTPUT_3_2_H_
 	if (useContext_3_2)
 	{
 		_contextInfo = new OGLContextInfo_3_2;
 	}
 	else
-#endif
 	{
 		_contextInfo = new OGLContextInfo_Legacy;
 	}
 	
 	CGLSetCurrentContext(prevContext);
 	
-	_clientData = [[MacClientSharedObject alloc] init];
+	_clientData = (void*)CFBridgingRetain([[MacClientSharedObject alloc] init]);
 	
 	_spinlockTexFetch[NDSDisplayID_Main]  = OS_SPINLOCK_INIT;
 	_spinlockTexFetch[NDSDisplayID_Touch] = OS_SPINLOCK_INIT;
@@ -174,7 +159,7 @@ CGLContextObj MacOGLClientFetchObject::GetContext() const
 
 void MacOGLClientFetchObject::Init()
 {
-	[(MacClientSharedObject *)this->_clientData setGPUFetchObject:this];
+	[(__bridge MacClientSharedObject *)this->_clientData setGPUFetchObject:this];
 	
 	CGLContextObj prevContext = CGLGetCurrentContext();
 	CGLSetCurrentContext(_context);
@@ -192,7 +177,7 @@ void MacOGLClientFetchObject::SetFetchBuffers(const NDSDisplayInfo &currentDispl
 
 void MacOGLClientFetchObject::FetchFromBufferIndex(const u8 index)
 {
-	MacClientSharedObject *sharedViewObject = (MacClientSharedObject *)this->_clientData;
+	MacClientSharedObject *sharedViewObject = (__bridge MacClientSharedObject *)this->_clientData;
 	this->_useDirectToCPUFilterPipeline = ([sharedViewObject numberViewsUsingDirectToCPUFiltering] > 0);
 	
 	semaphore_wait([sharedViewObject semaphoreFramebufferPageAtIndex:index]);
@@ -235,8 +220,8 @@ void MacOGLDisplayPresenter::operator delete(void *ptr)
 		CGLContextObj prevContext = CGLGetCurrentContext();
 		CGLSetCurrentContext(context);
 		
-		[((MacOGLDisplayPresenter *)ptr)->GetNSContext() release];
-		[((MacOGLDisplayPresenter *)ptr)->GetNSPixelFormat() release];
+//		[((MacOGLDisplayPresenter *)ptr)->GetNSContext() release];
+//		[((MacOGLDisplayPresenter *)ptr)->GetNSPixelFormat() release];
 		delete contextInfo;
 		::operator delete(ptr);
 		
@@ -262,26 +247,17 @@ void MacOGLDisplayPresenter::__InstanceInit(MacClientSharedObject *sharedObject)
 	// [NSOpenGLContext CGLContextObj] is available on macOS 10.5 Leopard, but
 	// [NSOpenGLContext initWithCGLContextObj:] is only available on macOS 10.6
 	// Snow Leopard.
+	// If we can support a 3.2 Core Profile context, then request that in our
+	// pixel format attributes.
 	NSOpenGLPixelFormatAttribute attributes[] = {
 		NSOpenGLPFAColorSize, (NSOpenGLPixelFormatAttribute)24,
 		NSOpenGLPFAAlphaSize, (NSOpenGLPixelFormatAttribute)8,
 		NSOpenGLPFADepthSize, (NSOpenGLPixelFormatAttribute)0,
 		NSOpenGLPFAStencilSize, (NSOpenGLPixelFormatAttribute)0,
 		NSOpenGLPFADoubleBuffer,
-		(NSOpenGLPixelFormatAttribute)0, (NSOpenGLPixelFormatAttribute)0,
+		NSOpenGLPFAOpenGLProfile, (NSOpenGLPixelFormatAttribute)NSOpenGLProfileVersion3_2Core,
 		(NSOpenGLPixelFormatAttribute)0
 	};
-	
-#ifdef _OGLDISPLAYOUTPUT_3_2_H_
-	// If we can support a 3.2 Core Profile context, then request that in our
-	// pixel format attributes.
-	bool useContext_3_2 = IsOSXVersionSupported(10, 7, 0);
-	if (useContext_3_2)
-	{
-		attributes[9] = NSOpenGLPFAOpenGLProfile;
-		attributes[10] = (NSOpenGLPixelFormatAttribute)NSOpenGLProfileVersion3_2Core;
-	}
-#endif
 	
 	_nsPixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attributes];
 	if (_nsPixelFormat == nil)
@@ -436,7 +412,7 @@ void MacOGLDisplayPresenter::SetProcessedFrameInfo(const OGLProcessedFrameInfo &
 void MacOGLDisplayPresenter::WriteLockEmuFramebuffer(const uint8_t bufferIndex)
 {
 	const GPUClientFetchObject &fetchObj = this->GetFetchObject();
-	MacClientSharedObject *sharedViewObject = (MacClientSharedObject *)fetchObj.GetClientData();
+	MacClientSharedObject *sharedViewObject = (__bridge MacClientSharedObject *)fetchObj.GetClientData();
 	
 	semaphore_wait([sharedViewObject semaphoreFramebufferPageAtIndex:bufferIndex]);
 }
@@ -444,7 +420,7 @@ void MacOGLDisplayPresenter::WriteLockEmuFramebuffer(const uint8_t bufferIndex)
 void MacOGLDisplayPresenter::ReadLockEmuFramebuffer(const uint8_t bufferIndex)
 {
 	const GPUClientFetchObject &fetchObj = this->GetFetchObject();
-	MacClientSharedObject *sharedViewObject = (MacClientSharedObject *)fetchObj.GetClientData();
+	MacClientSharedObject *sharedViewObject = (__bridge MacClientSharedObject *)fetchObj.GetClientData();
 	
 	semaphore_wait([sharedViewObject semaphoreFramebufferPageAtIndex:bufferIndex]);
 }
@@ -452,7 +428,7 @@ void MacOGLDisplayPresenter::ReadLockEmuFramebuffer(const uint8_t bufferIndex)
 void MacOGLDisplayPresenter::UnlockEmuFramebuffer(const uint8_t bufferIndex)
 {
 	const GPUClientFetchObject &fetchObj = this->GetFetchObject();
-	MacClientSharedObject *sharedViewObject = (MacClientSharedObject *)fetchObj.GetClientData();
+	MacClientSharedObject *sharedViewObject = (__bridge MacClientSharedObject *)fetchObj.GetClientData();
 	
 	semaphore_signal([sharedViewObject semaphoreFramebufferPageAtIndex:bufferIndex]);
 }
@@ -471,7 +447,7 @@ MacOGLDisplayView::MacOGLDisplayView(MacClientSharedObject *sharedObject)
 
 MacOGLDisplayView::~MacOGLDisplayView()
 {
-	[this->_caLayer release];
+	this->_caLayer = nil;
 }
 
 void MacOGLDisplayView::__InstanceInit(MacClientSharedObject *sharedObject)

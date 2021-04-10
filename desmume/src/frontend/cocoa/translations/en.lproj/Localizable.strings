@@ -1,0 +1,84 @@
+/* DeSmuME Strings File */
+/* ENGLISH */
+
+/* Dialog Box Titles */
+"Open ROM" = "Open ROM";
+"Open State File" = "Open State File";
+"Save State File" = "Save State File";
+"Import ROM Save File" = "Import ROM Save File";
+"Export ROM Save File" = "Export ROM Save File";
+"Select ROM" = "Select ROM";
+"Select ADVANsCEne Database" = "Select ADVANsCEne Database";
+"Select R4 Cheat Database" = "Select R4 Cheat Database";
+"Select ARM7 BIOS Image" = "Select ARM7 BIOS Image";
+"Select ARM9 BIOS Image" = "Select ARM9 BIOS Image";
+"Select Firmware Image" = "Select Firmware Image";
+"Save Screenshot" = "Save Screenshot";
+
+/* Menus */
+"Execute" = "Execute";
+"Pause" = "Pause";
+"Disable Speed Limit" = "Disable Speed Limit";
+"Enable Speed Limit" = "Enable Speed Limit";
+"Disable Auto Frame Skip" = "Disable Auto Frame Skip";
+"Enable Auto Frame Skip" = "Enable Auto Frame Skip";
+"Disable Cheats" = "Disable Cheats";
+"Enable Cheats" = "Enable Cheats";
+"Disable HUD" = "Disable HUD";
+"Enable HUD" = "Enable HUD";
+"Hide Status Bar" = "Hide Status Bar";
+"Show Status Bar" = "Show Status Bar";
+"Speed 1x" = "Speed 1x";
+"Speed 2x" = "Speed 2x";
+"Slot %d" = "Slot %d";
+
+/* Alert Text */
+"A critical file is missing. DeSmuME will now quit." = "A critical file is missing. DeSmuME will now quit.";
+"The file \"DefaultUserPrefs.plist\" is missing. Please reinstall DeSmuME." = "The file “DefaultUserPrefs.plist” is missing. Please reinstall DeSmuME.";
+
+/* Status Text */
+"Ready." = "Ready.";
+
+"Save state file loading failed!" = "Save state file loading failed!";
+"Save state file loaded." = "Save state file loaded.";
+"Save state file saving failed!" = "Save state file saving failed!";
+"Save state file saved." = "Save state file saved.";
+"Save state file reverting failed!" = "Save state file reverting failed!";
+"Save state file reverted." = "Save state file reverted.";
+
+"ROM save file import failed!" = "ROM save file import failed!";
+"ROM save file imported." = "ROM save file imported.";
+"ROM save file export failed!" = "ROM save file export failed!";
+"ROM save file exported." = "ROM save file exported.";
+
+"Loading ROM..." = "Loading ROM…";
+"ROM loaded." = "ROM loaded.";
+"ROM loading failed!" = "ROM loading failed!";
+"Unloading ROM..." = "Unloading ROM…";
+"ROM unloaded." = "ROM unloaded.";
+
+"Emulator resetting..." = "Emulator resetting…";
+"Emulator reset." = "Emulator reset.";
+
+"Cannot generate the save file path!" = "Cannot generate the save file path!";
+"Cannot create the save directory!" = "Cannot create the save directory!";
+
+"Speed limit disabled." = "Speed limit disabled.";
+"Speed limit enabled." = "Speed limit enabled.";
+"Auto frame skip disabled." = "Auto frame skip disabled.";
+"Auto frame skip enabled." = "Auto frame skip enabled.";
+"Cheats disabled." = "Cheats disabled.";
+"Cheats enabled." = "Cheats enabled.";
+"HUD disabled." = "HUD disabled.";
+"HUD enabled." = "HUD enabled.";
+
+"Volume: %1.1f%%" = "Volume: %1.1f%%";
+
+/* ROM Info Panel */
+"No ROM loaded." = "No ROM loaded.";
+"%li bytes" = "%li bytes";
+
+/* Display Mode Strings */
+"Main" = "Main";
+"Touch" = "Touch";
+"Dual Screen" = "Dual Screen";

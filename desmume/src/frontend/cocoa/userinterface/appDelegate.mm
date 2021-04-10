@@ -83,7 +83,7 @@
 	didApplicationFinishLaunching = NO;
 	delayedROMFileName = nil;
 	
-	RGBA8888ToNSColorValueTransformer *nsColorTransformer = [[[RGBA8888ToNSColorValueTransformer alloc] init] autorelease];
+	RGBA8888ToNSColorValueTransformer *nsColorTransformer = [[RGBA8888ToNSColorValueTransformer alloc] init];
 	[NSValueTransformer setValueTransformer:nsColorTransformer forName:@"RGBA8888ToNSColorValueTransformer"];
 	
 	return self;
@@ -151,7 +151,10 @@
 	NSDictionary *prefsDict = [NSDictionary dictionaryWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"DefaultUserPrefs" ofType:@"plist"]];
 	if (prefsDict == nil)
 	{
-		[[NSAlert alertWithMessageText:NSSTRING_ALERT_CRITICAL_FILE_MISSING_PRI defaultButton:nil alternateButton:nil otherButton:nil informativeTextWithFormat:NSSTRING_ALERT_CRITICAL_FILE_MISSING_SEC] runModal];
+		NSAlert *alert = [[NSAlert alloc] init];
+		alert.messageText = NSSTRING_ALERT_CRITICAL_FILE_MISSING_PRI;
+		alert.informativeText = NSSTRING_ALERT_CRITICAL_FILE_MISSING_SEC;
+		[alert runModal];
 		[NSApp terminate:nil];
 		return;
 	}
@@ -174,9 +177,8 @@
 	// On macOS v10.13 and later, some unwanted menu items will show up in the View menu.
 	// Disable automatic window tabbing for all NSWindows in order to rid ourselves of
 	// these unwanted menu items.
-#if defined(MAC_OS_X_VERSION_10_13) && (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_13)
-	if ([[NSWindow class] respondsToSelector:@selector(setAllowsAutomaticWindowTabbing:)])
-	{
+#if defined(MAC_OS_X_VERSION_10_12) && (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12)
+	if (@available(macOS 10.12, *)) {
 		[NSWindow setAllowsAutomaticWindowTabbing:NO];
 	}
 #endif
@@ -214,7 +216,7 @@
 	[self setupSlotMenuItems];
 	
 	// Init the DS emulation core.
-	CocoaDSCore *newCore = [[[CocoaDSCore alloc] init] autorelease];
+	CocoaDSCore *newCore = [[CocoaDSCore alloc] init];
 	
 	// Init the DS controller.
 	[[newCore cdsController] setDelegate:emuControl];
@@ -227,7 +229,7 @@
 	[wifiSettingsPanelDelegate fillLibpcapDeviceMenu];
 	
 	// Init the DS speakers.
-	CocoaDSSpeaker *newSpeaker = [[[CocoaDSSpeaker alloc] init] autorelease];
+	CocoaDSSpeaker *newSpeaker = [[CocoaDSSpeaker alloc] init];
 	[newCore addOutput:newSpeaker];
 	[emuControl setCdsSpeaker:newSpeaker];
 	
@@ -311,11 +313,7 @@
 				
 			case ROMAUTOLOADOPTION_LOAD_SELECTED:
 			{
-				NSString *autoloadRomPath = [[NSUserDefaults standardUserDefaults] stringForKey:@"General_AutoloadROMSelectedPath"];
-				if (autoloadRomPath != nil && [autoloadRomPath length] > 0)
-				{
-					autoloadRomURL = [NSURL fileURLWithPath:autoloadRomPath];
-				}
+				autoloadRomURL = [[NSUserDefaults standardUserDefaults] URLForKey:@"General_AutoloadROMSelectedPath"];
 				
 				break;
 			}
@@ -342,7 +340,6 @@
 	isFirstTimeRun = YES;
 	[appFirstTimeRunDict setValue:[NSNumber numberWithBool:isFirstTimeRun] forKey:bundleVersionString];
 	[[NSUserDefaults standardUserDefaults] setObject:appFirstTimeRunDict forKey:@"General_AppFirstTimeRun"];
-	[appFirstTimeRunDict release];
 	
 	// If the user is trying to load a ROM file while launching the app, then ensure that the
 	// ROM file is loaded at the end of this method and never any time before that.
@@ -472,39 +469,18 @@
 - (void) setupUserDefaults
 {
 	EmuControllerDelegate *emuControl = (EmuControllerDelegate *)[emuControlController content];
-	PreferencesWindowDelegate *prefWindowDelegate = [prefWindow delegate];
+	PreferencesWindowDelegate *prefWindowDelegate = (PreferencesWindowDelegate*)[prefWindow delegate];
 	CocoaDSCore *cdsCore = (CocoaDSCore *)[cdsCoreController content];
 	
 	// Setup the ARM7 BIOS, ARM9 BIOS, and firmware image paths per user preferences.
-	NSString *arm7BiosImagePath = [[NSUserDefaults standardUserDefaults] stringForKey:@"BIOS_ARM7ImagePath"];
-	if (arm7BiosImagePath != nil)
-	{
-		[cdsCore setArm7ImageURL:[NSURL fileURLWithPath:arm7BiosImagePath]];
-	}
-	else
-	{
-		[cdsCore setArm7ImageURL:nil];
-	}
+	NSURL *arm7BiosImagePath = [[NSUserDefaults standardUserDefaults] URLForKey:@"BIOS_ARM7ImagePath"];
+	[cdsCore setArm7ImageURL:arm7BiosImagePath];
 	
-	NSString *arm9BiosImagePath = [[NSUserDefaults standardUserDefaults] stringForKey:@"BIOS_ARM9ImagePath"];
-	if (arm9BiosImagePath != nil)
-	{
-		[cdsCore setArm9ImageURL:[NSURL fileURLWithPath:arm9BiosImagePath]];
-	}
-	else
-	{
-		[cdsCore setArm9ImageURL:nil];
-	}
+	NSURL *arm9BiosImagePath = [[NSUserDefaults standardUserDefaults] URLForKey:@"BIOS_ARM9ImagePath"];
+	[cdsCore setArm9ImageURL:arm9BiosImagePath];
 	
-	NSString *firmwareImagePath = [[NSUserDefaults standardUserDefaults] stringForKey:@"Emulation_FirmwareImagePath"];
-	if (firmwareImagePath != nil)
-	{
-		[cdsCore setFirmwareImageURL:[NSURL fileURLWithPath:firmwareImagePath]];
-	}
-	else
-	{
-		[cdsCore setFirmwareImageURL:nil];
-	}
+	NSURL *firmwareImagePath = [[NSUserDefaults standardUserDefaults] URLForKey:@"Emulation_FirmwareImagePath"];
+	[cdsCore setFirmwareImageURL:firmwareImagePath];
 	
 	// Set the emulation flags.
 	[cdsCore setEmuFlagAdvancedBusLevelTiming:[[NSUserDefaults standardUserDefaults] boolForKey:@"Emulation_AdvancedBusLevelTiming"]];
@@ -528,9 +504,9 @@
 	[cdsCore setMaxJITBlockSize:[[NSUserDefaults standardUserDefaults] integerForKey:@"Emulation_MaxJITBlockSize"]];
 	
 	// Set the SLOT-1 device settings per user preferences.
-	NSString *slot1R4Path = (NSString *)[[NSUserDefaults standardUserDefaults] objectForKey:@"EmulationSlot1_R4StoragePath"];
+	NSURL *slot1R4Path = [[NSUserDefaults standardUserDefaults] URLForKey:@"EmulationSlot1_R4StoragePath"];
 	[cdsCore setSlot1DeviceType:[[NSUserDefaults standardUserDefaults] integerForKey:@"EmulationSlot1_DeviceType"]];
-	[cdsCore setSlot1R4URL:(slot1R4Path != nil) ? [NSURL fileURLWithPath:slot1R4Path] : nil];
+	[cdsCore setSlot1R4URL:slot1R4Path];
 	
 	// Set the miscellaneous emulations settings per user preferences.
 	[emuControl changeCoreSpeedWithDouble:[[NSUserDefaults standardUserDefaults] doubleForKey:@"CoreControl_SpeedScalar"]];
@@ -539,7 +515,7 @@
 	[cdsCore setIsCheatingEnabled:[[NSUserDefaults standardUserDefaults] boolForKey:@"CoreControl_EnableCheats"]];
 	
 	// Set up the firmware per user preferences.
-	CocoaDSFirmware *newFirmware = [[[CocoaDSFirmware alloc] init] autorelease];
+	CocoaDSFirmware *newFirmware = [[CocoaDSFirmware alloc] init];
 	BOOL needUserDefaultSynchronize = NO;
 	uint32_t defaultMACAddress_u32 = 0;
 	

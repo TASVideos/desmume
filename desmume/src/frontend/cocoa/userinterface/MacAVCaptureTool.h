@@ -130,7 +130,7 @@ public:
 {
 	ClientAVCaptureObject *_captureObject;
 	ClientExecutionControl *execControl;
-	CocoaDSCore *cdsCore;
+	__unsafe_unretained CocoaDSCore *cdsCore;
 	CocoaDSVideoCapture *_videoCaptureOutput;
 	
 	NSButton *recordButton;
@@ -164,7 +164,5 @@ public:
 - (IBAction) toggleRecordingState:(id)sender;
 
 @end
-
-static void* RunAVCaptureCloseThread(void *arg);
 
 #endif // _MAC_AVCAPTURETOOL_H_

@@ -20,11 +20,7 @@
 #include <libkern/OSAtomic.h>
 
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_5
 @interface CocoaDSRom : NSObject <NSXMLParserDelegate>
-#else
-@interface CocoaDSRom : NSObject
-#endif
 {	
 	NSMutableDictionary *header;
 	NSMutableDictionary *bindings;
@@ -36,9 +32,9 @@
 	NSMutableArray *xmlCharacterStack;
 }
 
-@property (readonly) NSMutableDictionary *header;
-@property (readonly) NSMutableDictionary *bindings;
-@property (readonly) NSURL *fileURL;
+@property (readonly, retain) NSMutableDictionary *header;
+@property (readonly, strong) NSMutableDictionary *bindings;
+@property (readonly, copy) NSURL *fileURL;
 @property (assign) BOOL willStreamLoadData;
 @property (readonly) BOOL isDataLoaded;
 @property (assign) NSInteger saveType;
@@ -49,31 +45,20 @@
 - (BOOL) initHeader;
 - (BOOL) loadData:(NSURL *)theURL;
 - (void) loadDataOnThread:(id)object;
-- (NSString *) title;
-- (NSString *) code;
+@property (readonly, copy) NSString *title;
+@property (readonly, copy) NSString *code;
 - (NSString *) banner:(const UInt16 *)UTF16TextBuffer;
-- (NSString *) internalName;
-- (NSString *) serial;
-- (NSString *) developerName;
-- (NSString *) developerNameAndCode;
+@property (readonly, copy) NSString *internalName;
+@property (readonly, copy) NSString *serial;
+@property (readonly, copy) NSString *developerName;
+@property (readonly, copy) NSString *developerNameAndCode;
 - (NSString *) unitCodeStringUsingID:(NSInteger)unitCodeID;
-- (NSImage *) icon;
+@property (readonly, copy) NSImage *icon;
 - (void) handleAdvansceneDatabaseInfo;
 
 + (void) changeRomSaveType:(NSInteger)saveTypeID;
 + (NSInteger) saveTypeByString:(NSString *)saveTypeString;
-+ (NSMutableDictionary *) romNotLoadedBindings;
+@property (class, readonly, copy) NSMutableDictionary *romNotLoadedBindings;
 + (NSString *) byteSizeStringWithLargerUnit:(NSUInteger)byteSize;
 
 @end
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-void RomIconToRGBA8888(uint32_t *bitmapData);
-
-#ifdef __cplusplus
-}
-#endif

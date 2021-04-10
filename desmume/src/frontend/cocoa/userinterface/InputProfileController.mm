@@ -25,17 +25,6 @@
 @synthesize inputManager;
 @synthesize profileOutlineView;
 
-- (id)init
-{
-    self = [super init];
-    if (self == nil)
-	{
-		return self;
-    }
-	
-	return self;
-}
-
 - (NSString *) commandTagFromInputList:(NSArray *)inputList
 {
 	NSDictionary *mappings = [(NSDictionary *)[self content] valueForKey:@"Mappings"];
@@ -96,12 +85,12 @@
 			}
 			else
 			{
-				outCell = [[[NSCell alloc] init] autorelease];
+				outCell = [[NSCell alloc] init];
 			}
 		}
 		else
 		{
-			outCell = [[[NSCell alloc] init] autorelease];
+			outCell = [[NSCell alloc] init];
 		}
 	}
 	else if ([columnID isEqualToString:@"InputDeviceColumn"])

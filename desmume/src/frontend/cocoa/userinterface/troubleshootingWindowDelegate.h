@@ -24,38 +24,23 @@ enum TroubleshootingViewID
 	TROUBLESHOOTING_BUG_REPORT_VIEW_ID
 };
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED > MAC_OS_X_VERSION_10_5
 @interface TroubleshootingWindowDelegate : NSObject <NSWindowDelegate>
-#else
-@interface TroubleshootingWindowDelegate : NSObject
-#endif
 {
-	NSObject *dummyObject;
-	NSWindow *window;
-	NSObjectController *troubleshootingWindowController;
-	NSObjectController *romInfoController;
-	NSObjectController *emuControlController;
-	NSObjectController *cdsCoreController;
-	
-	NSView *viewSupportRequest;
-	NSView *viewBugReport;
-	NSView *viewFinishedForm;
-	
-	NSView *currentForm;
+	NSView *__weak currentForm;
 	
 	NSMutableDictionary *bindings;
 }
 
-@property (readonly) IBOutlet NSObject *dummyObject;
-@property (readonly) IBOutlet NSWindow *window;
-@property (readonly) IBOutlet NSObjectController *troubleshootingWindowController;
-@property (readonly) IBOutlet NSObjectController *romInfoController;
-@property (readonly) IBOutlet NSObjectController *emuControlController;
-@property (readonly) IBOutlet NSObjectController *cdsCoreController;
-@property (readonly) IBOutlet NSView *viewSupportRequest;
-@property (readonly) IBOutlet NSView *viewBugReport;
-@property (readonly) IBOutlet NSView *viewFinishedForm;
-@property (readonly) NSMutableDictionary *bindings;
+@property (weak) IBOutlet NSObject *dummyObject;
+@property (weak) IBOutlet NSWindow *window;
+@property (weak) IBOutlet NSObjectController *troubleshootingWindowController;
+@property (weak) IBOutlet NSObjectController *romInfoController;
+@property (weak) IBOutlet NSObjectController *emuControlController;
+@property (weak) IBOutlet NSObjectController *cdsCoreController;
+@property (weak) IBOutlet NSView *viewSupportRequest;
+@property (weak) IBOutlet NSView *viewBugReport;
+@property (weak) IBOutlet NSView *viewFinishedForm;
+@property (readonly, strong) NSMutableDictionary *bindings;
 
 - (IBAction) copyRomInfoToTextFields:(id)sender;
 - (IBAction) continueToFinalForm:(id)sender;

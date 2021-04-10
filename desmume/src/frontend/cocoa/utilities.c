@@ -28,23 +28,47 @@ static unsigned int OSXVersionRevision = 0;
 
 static bool isSystemVersionAlreadyRead = false;
 
+static CFDataRef copyDataFromReadStream(CFReadStreamRef theRef)
+{
+	CFMutableDataRef toRet = CFDataCreateMutable(kCFAllocatorDefault, 0);
+	if (!CFReadStreamOpen(theRef)) {
+		CFRelease(toRet);
+		return NULL;
+	}
+	while (CFReadStreamHasBytesAvailable(theRef))
+	{
+		UInt8 buffer[1024];
+		CFIndex readSize = CFReadStreamRead(theRef, buffer, sizeof(buffer));
+		CFDataAppendBytes(toRet, buffer, readSize);
+	}
+	CFReadStreamClose(theRef);
+	
+	return toRet;
+}
+
 static void ReadSystemVersionPListFile()
 {
 	// Read the SystemVersion.plist file.
 	CFDataRef resourceData = NULL;
 	CFURLRef systemPListURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, CFSTR("/System/Library/CoreServices/SystemVersion.plist"), kCFURLPOSIXPathStyle, false);
-	Boolean status = CFURLCreateDataAndPropertiesFromResource(kCFAllocatorDefault, systemPListURL, &resourceData, NULL, NULL, NULL);
-	if (!status)
+	CFReadStreamRef readRef = CFReadStreamCreateWithFile(kCFAllocatorDefault, systemPListURL);
+	CFRelease(systemPListURL);
+	if (!readRef)
 	{
-		CFRelease(systemPListURL);
 		return;
 	}
 	
-	CFDictionaryRef systemDict = (CFDictionaryRef)CFPropertyListCreateFromXMLData(kCFAllocatorDefault, resourceData, kCFPropertyListImmutable, NULL);
+	resourceData = copyDataFromReadStream(readRef);
+	CFRelease(readRef);
+	if (!resourceData)
+	{
+		return;
+	}
+	
+	CFDictionaryRef systemDict = (CFDictionaryRef)CFPropertyListCreateWithData(kCFAllocatorDefault, resourceData, kCFPropertyListImmutable, NULL, NULL);
+	CFRelease(resourceData);
 	if (systemDict == NULL)
 	{
-		CFRelease(resourceData);
-		CFRelease(systemPListURL);
 		return;
 	}
 	
@@ -90,8 +114,6 @@ static void ReadSystemVersionPListFile()
 	}
 	
 	// Release all resources now that the system version string has been copied.
-	CFRelease(resourceData);
-	CFRelease(systemPListURL);
 	CFRelease(systemDict);
 	
 	// Mark that we've already read the SystemVersion.plist file so that we don't
@@ -132,21 +154,20 @@ bool IsOSXVersion(const unsigned int major, const unsigned int minor, const unsi
 	return result;
 }
 
-/********************************************************************************************
-	GetNearestPositivePOT()
+/**
+	@function GetNearestPositivePOT()
 
-	Returns the next highest power of two of a 32-bit integer value.
+	@brief Returns the next highest power of two of a 32-bit integer value.
 
-	Takes:
-		value - A 32-bit integer value.
+	@param value  A 32-bit integer value.
 
-	Returns:
+	@Returns
 		A 32-bit integer with the next highest power of two compared to the input value.
 
-	Details:
+	@discussion
 		If the input value is already a power of two, this function returns the same
 		value.
- ********************************************************************************************/
+ **/
 uint32_t GetNearestPositivePOT(uint32_t value)
 {
 	value--;

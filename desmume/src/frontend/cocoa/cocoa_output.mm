@@ -40,6 +40,7 @@
 #undef BOOL
 #endif
 
+static void* RunOutputThread(void *arg);
 
 @implementation CocoaDSOutput
 
@@ -71,10 +72,6 @@
 - (void)dealloc
 {
 	[self exitThread];
-	
-	[property release];
-	
-	[super dealloc];
 }
 
 - (void) setIdle:(BOOL)theState
@@ -107,7 +104,7 @@
 	sp.sched_priority = 45;
 	pthread_attr_setschedparam(&threadAttr, &sp);
 	
-	pthread_create(&_pthread, &threadAttr, &RunOutputThread, self);
+	pthread_create(&_pthread, &threadAttr, &RunOutputThread, (__bridge void*)self);
 	pthread_attr_destroy(&threadAttr);
 }
 
@@ -214,13 +211,13 @@
 	
 	// Set up properties.
 	[property setValue:[NSNumber numberWithFloat:(float)vol] forKey:@"volume"];
-	[property setValue:[NSNumber numberWithBool:NO] forKey:@"mute"];
-	[property setValue:[NSNumber numberWithInteger:0] forKey:@"filter"];
-	[property setValue:[NSNumber numberWithInteger:SNDCORE_DUMMY] forKey:@"audioOutputEngine"];
-	[property setValue:[NSNumber numberWithBool:NO] forKey:@"spuAdvancedLogic"];
-	[property setValue:[NSNumber numberWithInteger:SPUInterpolation_None] forKey:@"spuInterpolationMode"];
-	[property setValue:[NSNumber numberWithInteger:SPU_SYNC_MODE_DUAL_SYNC_ASYNC] forKey:@"spuSyncMode"];
-	[property setValue:[NSNumber numberWithInteger:SPU_SYNC_METHOD_N] forKey:@"spuSyncMethod"];
+	[property setValue:@NO forKey:@"mute"];
+	[property setValue:@0 forKey:@"filter"];
+	[property setValue:@(SNDCORE_DUMMY) forKey:@"audioOutputEngine"];
+	[property setValue:@NO forKey:@"spuAdvancedLogic"];
+	[property setValue:@(SPUInterpolation_None) forKey:@"spuInterpolationMode"];
+	[property setValue:@(SPU_SYNC_MODE_DUAL_SYNC_ASYNC) forKey:@"spuSyncMode"];
+	[property setValue:@(SPU_SYNC_METHOD_N) forKey:@"spuSyncMethod"];
 	
 	return self;
 }
@@ -266,10 +263,10 @@
 	return vol;
 }
 
-- (void) setAudioOutputEngine:(NSInteger)methodID
+- (void) setAudioOutputEngine:(int)methodID
 {
 	OSSpinLockLock(&spinlockAudioOutputEngine);
-	[property setValue:[NSNumber numberWithInteger:methodID] forKey:@"audioOutputEngine"];
+	[property setValue:@(methodID) forKey:@"audioOutputEngine"];
 	OSSpinLockUnlock(&spinlockAudioOutputEngine);
 	
 	pthread_rwlock_wrlock(self.rwlockProducer);
@@ -292,10 +289,10 @@
 	[self setVolume:[self volume]];
 }
 
-- (NSInteger) audioOutputEngine
+- (int) audioOutputEngine
 {
 	OSSpinLockLock(&spinlockAudioOutputEngine);
-	NSInteger methodID = [(NSNumber *)[property valueForKey:@"audioOutputEngine"] integerValue];
+	NSInteger methodID = [(NSNumber *)[property valueForKey:@"audioOutputEngine"] intValue];
 	OSSpinLockUnlock(&spinlockAudioOutputEngine);
 	
 	return methodID;
@@ -341,43 +338,43 @@
 	return modeID;
 }
 
-- (void) setSpuSyncMode:(NSInteger)modeID
+- (void) setSpuSyncMode:(int)modeID
 {
 	OSSpinLockLock(&spinlockSpuSyncMode);
-	[property setValue:[NSNumber numberWithInteger:modeID] forKey:@"spuSyncMode"];
+	[property setValue:@(modeID) forKey:@"spuSyncMode"];
 	OSSpinLockUnlock(&spinlockSpuSyncMode);
 	
 	pthread_rwlock_wrlock(self.rwlockProducer);
-	CommonSettings.SPU_sync_mode = (int)modeID;
+	CommonSettings.SPU_sync_mode = modeID;
 	SPU_SetSynchMode(CommonSettings.SPU_sync_mode, CommonSettings.SPU_sync_method);
 	pthread_rwlock_unlock(self.rwlockProducer);
 }
 
-- (NSInteger) spuSyncMode
+- (int) spuSyncMode
 {
 	OSSpinLockLock(&spinlockSpuSyncMode);
-	NSInteger modeID = [(NSNumber *)[property valueForKey:@"spuSyncMode"] integerValue];
+	int modeID = [(NSNumber *)[property valueForKey:@"spuSyncMode"] intValue];
 	OSSpinLockUnlock(&spinlockSpuSyncMode);
 	
 	return modeID;
 }
 
-- (void) setSpuSyncMethod:(NSInteger)methodID
+- (void) setSpuSyncMethod:(int)methodID
 {
 	OSSpinLockLock(&spinlockSpuSyncMethod);
-	[property setValue:[NSNumber numberWithInteger:methodID] forKey:@"spuSyncMethod"];
+	[property setValue:@(methodID) forKey:@"spuSyncMethod"];
 	OSSpinLockUnlock(&spinlockSpuSyncMethod);
 	
 	pthread_rwlock_wrlock(self.rwlockProducer);
-	CommonSettings.SPU_sync_method = (int)methodID;
+	CommonSettings.SPU_sync_method = methodID;
 	SPU_SetSynchMode(CommonSettings.SPU_sync_mode, CommonSettings.SPU_sync_method);
 	pthread_rwlock_unlock(self.rwlockProducer);
 }
 
-- (NSInteger) spuSyncMethod
+- (int) spuSyncMethod
 {
 	OSSpinLockLock(&spinlockSpuSyncMethod);
-	NSInteger methodID = [(NSNumber *)[property valueForKey:@"spuSyncMethod"] integerValue];
+	int methodID = [(NSNumber *)[property valueForKey:@"spuSyncMethod"] intValue];
 	OSSpinLockUnlock(&spinlockSpuSyncMethod);
 	
 	return methodID;
@@ -586,8 +583,6 @@
 	pthread_mutex_unlock(&_mutexCaptureBuffer);
 	
 	pthread_mutex_destroy(&_mutexCaptureBuffer);
-	
-	[super dealloc];
 }
 
 - (void) handleReceiveGPUFrame
@@ -1249,8 +1244,8 @@
 	}
 	
 	NSPasteboard *pboard = [NSPasteboard generalPasteboard];
-	[pboard declareTypes:[NSArray arrayWithObjects:NSTIFFPboardType, nil] owner:self];
-	[pboard setData:[screenshot TIFFRepresentationUsingCompression:NSTIFFCompressionLZW factor:1.0f] forType:NSTIFFPboardType];
+	[pboard declareTypes:@[NSPasteboardTypeTIFF] owner:self];
+	[pboard setData:[screenshot TIFFRepresentationUsingCompression:NSTIFFCompressionLZW factor:1.0f] forType:NSPasteboardTypeTIFF];
 }
 
 - (void) setScaleFactor:(float)theScaleFactor
@@ -1285,7 +1280,7 @@
 	}
 	
 	// Render the frame in an NSBitmapImageRep
-	NSBitmapImageRep *newImageRep = [[[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
+	NSBitmapImageRep *newImageRep = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
 																			 pixelsWide:w
 																			 pixelsHigh:h
 																		  bitsPerSample:8
@@ -1294,10 +1289,9 @@
 																			   isPlanar:NO
 																		 colorSpaceName:NSCalibratedRGBColorSpace
 																			bytesPerRow:w * 4
-																		   bitsPerPixel:32] autorelease];
+																		   bitsPerPixel:32];
 	if (newImageRep == nil)
 	{
-		[newImage release];
 		newImage = nil;
 		return newImage;
 	}
@@ -1307,14 +1301,14 @@
 	// Attach the rendered frame to the NSImageRep
 	[newImage addRepresentation:newImageRep];
 	
-	return [newImage autorelease];
+	return newImage;
 }
 
 @end
 
 static void* RunOutputThread(void *arg)
 {
-	CocoaDSOutput *cdsDisplayOutput = (CocoaDSOutput *)arg;
+	CocoaDSOutput *cdsDisplayOutput = (__bridge CocoaDSOutput *)arg;
 	[cdsDisplayOutput runMessageLoop];
 	
 	return NULL;

@@ -37,6 +37,8 @@
 #include "../../SPU.h"
 #undef BOOL
 
+static void* RunCoreThread(void *arg);
+
 //accessed from other files
 volatile bool execute = true;
 
@@ -44,7 +46,7 @@ volatile bool execute = true;
 
 @synthesize execControl;
 
-@dynamic cdsController;
+@synthesize cdsController;
 @synthesize cdsFirmware;
 @synthesize cdsGPU;
 @synthesize cdsOutputList;
@@ -106,9 +108,7 @@ volatile bool execute = true;
 	int initResult = NDS_Init();
 	if (initResult == -1)
 	{
-		[self release];
-		self = nil;
-		return self;
+		return nil;
 	}
 	
 	execControl = new ClientExecutionControl;
@@ -117,9 +117,9 @@ volatile bool execute = true;
 	_isTimerAtSecond = NO;
 	
 	cdsFirmware = nil;
-	cdsGPU = [[[[CocoaDSGPU alloc] init] autorelease] retain];
-	cdsController = [[[[CocoaDSController alloc] init] autorelease] retain];
-	cdsOutputList = [[[[NSMutableArray alloc] initWithCapacity:32] autorelease] retain];
+	cdsGPU = [[CocoaDSGPU alloc] init];
+	cdsController = [[CocoaDSController alloc] init];
+	cdsOutputList = [[NSMutableArray alloc] initWithCapacity:32];
 	
 	ClientInputHandler *inputHandler = [cdsController inputHandler];
 	inputHandler->SetClientExecutionController(execControl);
@@ -210,8 +210,6 @@ volatile bool execute = true;
 	
 	delete execControl;
 	NDS_DeInit();
-	
-	[super dealloc];
 }
 
 - (void) setMasterExecute:(BOOL)theState
@@ -249,13 +247,7 @@ volatile bool execute = true;
 		return;
 	}
 	
-	if (theController != nil)
-	{
-		[theController retain];
-	}
-	
 	pthread_mutex_lock(&threadParam.mutexThreadExecute);
-	[cdsController release];
 	cdsController = theController;
 	pthread_mutex_unlock(&threadParam.mutexThreadExecute);
 	
@@ -696,7 +688,7 @@ volatile bool execute = true;
 
 - (void) setArm9ImageURL:(NSURL *)fileURL
 {
-	const char *filePath = (fileURL != NULL) ? [[fileURL path] cStringUsingEncoding:NSUTF8StringEncoding] : NULL;
+	const char *filePath = (fileURL != NULL) ? [fileURL fileSystemRepresentation] : NULL;
 	execControl->SetARM9ImagePath(filePath);
 }
 
@@ -708,7 +700,7 @@ volatile bool execute = true;
 
 - (void) setArm7ImageURL:(NSURL *)fileURL
 {
-	const char *filePath = (fileURL != NULL) ? [[fileURL path] cStringUsingEncoding:NSUTF8StringEncoding] : NULL;
+	const char *filePath = (fileURL != NULL) ? [fileURL fileSystemRepresentation] : NULL;
 	execControl->SetARM7ImagePath(filePath);
 }
 
@@ -720,7 +712,7 @@ volatile bool execute = true;
 
 - (void) setFirmwareImageURL:(NSURL *)fileURL
 {
-	const char *filePath = (fileURL != NULL) ? [[fileURL path] cStringUsingEncoding:NSUTF8StringEncoding] : NULL;
+	const char *filePath = (fileURL != NULL) ? [fileURL fileSystemRepresentation] : NULL;
 	execControl->SetFirmwareImagePath(filePath);
 }
 
@@ -732,7 +724,7 @@ volatile bool execute = true;
 
 - (void) setSlot1R4URL:(NSURL *)fileURL
 {
-	const char *filePath = (fileURL != NULL) ? [[fileURL path] cStringUsingEncoding:NSUTF8StringEncoding] : NULL;
+	const char *filePath = (fileURL != NULL) ? [fileURL fileSystemRepresentation] : NULL;
 	execControl->SetSlot1R4Path(filePath);
 }
 
@@ -968,31 +960,20 @@ volatile bool execute = true;
 		return NO;
 	}
 	
-	std::string sramPath = (sramURL != nil) ? [[sramURL path] cStringUsingEncoding:NSUTF8StringEncoding] : "";
-	const char *fileName = [[fileURL path] cStringUsingEncoding:NSUTF8StringEncoding];
+	std::string sramPath = (sramURL != nil) ? [sramURL fileSystemRepresentation] : "";
+	const char *fileName = [fileURL fileSystemRepresentation];
 	
 	NSDate *currentDate = [NSDate date];
-	NSString *currentDateStr = [currentDate descriptionWithCalendarFormat:@"%Y %m %d %H %M %S %F"
-																 timeZone:nil
-																   locale:[[NSUserDefaults standardUserDefaults] dictionaryRepresentation]];
+	NSCalendar *cal = [NSCalendar calendarWithIdentifier:NSCalendarIdentifierGregorian];
+	NSDateComponents *comps = [cal components:(NSCalendarUnitNanosecond | NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond) fromDate:currentDate];
 	
-	int dateYear = 2009;
-	int dateMonth = 1;
-	int dateDay = 1;
-	int dateHour = 0;
-	int dateMinute = 0;
-	int dateSecond = 0;
-	int dateMillisecond = 0;
-	const char *dateCStr = [currentDateStr cStringUsingEncoding:NSUTF8StringEncoding];
-	sscanf(dateCStr, "%i %i %i %i %i %i %i", &dateYear, &dateMonth, &dateDay, &dateHour, &dateMinute, &dateSecond, &dateMillisecond);
-	
-	DateTime rtcDate = DateTime(dateYear,
-								dateMonth,
-								dateDay,
-								dateHour,
-								dateMinute,
-								dateSecond,
-								dateMillisecond);
+	DateTime rtcDate = DateTime((int)comps.year,
+								(int)comps.month,
+								(int)comps.day,
+								(int)comps.hour,
+								(int)comps.minute,
+								(int)comps.second,
+								(int)comps.nanosecond/1e+6);
 	
 	FCEUI_SaveMovie(fileName, L"Test Author", START_BLANK, sramPath, rtcDate);
 	

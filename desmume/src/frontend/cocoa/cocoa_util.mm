@@ -53,14 +53,14 @@
 + (BOOL) getIBActionSenderButtonStateBool:(id)sender
 {
 	BOOL theState = NO;
-	NSInteger buttonState = NSOffState;
+	NSControlStateValue buttonState = NSControlStateValueOff;
 	
 	if ([sender respondsToSelector:@selector(state)])
 	{
 		buttonState = [sender state];
 	}
 	
-	if (buttonState == NSOnState)
+	if (buttonState == NSControlStateValueOn)
 	{
 		theState = YES;
 	}
@@ -214,7 +214,6 @@
 		}
 	}
 	
-	[numberFormatter release];
 	return ip4Address_u32;
 }
 
@@ -259,8 +258,6 @@
 		{
 			dragOp = NSDragOperationLink;
 		}
-		
-		[fileManager release];
 	}
 	
 	return dragOp;

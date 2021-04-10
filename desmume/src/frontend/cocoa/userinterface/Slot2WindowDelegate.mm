@@ -50,13 +50,13 @@
 @synthesize hidManager;
 
 @synthesize autoSelectedDeviceText;
-@dynamic mpcfFolderURL;
-@dynamic mpcfDiskImageURL;
+@synthesize mpcfFolderURL;
+@synthesize mpcfDiskImageURL;
 @dynamic mpcfFolderName;
 @dynamic mpcfFolderPath;
 @dynamic mpcfDiskImageName;
 @dynamic mpcfDiskImagePath;
-@dynamic gbaCartridgeURL;
+@synthesize gbaCartridgeURL;
 @dynamic gbaCartridgeName;
 @dynamic gbaCartridgePath;
 @synthesize gbaSRamURL;
@@ -70,7 +70,7 @@
 	}
 	
 	selectedDevice = nil;
-	deviceManager = [[[[CocoaDSSlot2Manager alloc] init] retain] autorelease];
+	deviceManager = [[CocoaDSSlot2Manager alloc] init];
 	hidManager = nil;
 	currentDeviceView = viewNoSelection;
 	
@@ -91,16 +91,11 @@
 
 - (void)dealloc
 {
-	[self setSelectedDevice:nil];
-	[self setDeviceManager:nil];
-	[self setHidManager:nil];
-	[self setAutoSelectedDeviceText:nil];
 	[self setMpcfFolderURL:nil];
 	[self setMpcfDiskImageURL:nil];
 	[self setGbaCartridgeURL:nil];
 	[self setGbaSRamURL:nil];
 	
-	[super dealloc];
 }
 
 - (IBAction) applySettings:(id)sender
@@ -233,7 +228,6 @@
 	if (newView != nil)
 	{
 		NSRect frameRect = [currentDeviceView frame];
-		[currentDeviceView retain];
 		[deviceSettingsBox replaceSubview:currentDeviceView with:newView];
 		currentDeviceView = newView;
 		[currentDeviceView setFrame:frameRect];
@@ -242,10 +236,10 @@
 
 - (void) setupUserDefaults
 {
-	[self setMpcfFolderURL:[NSURL fileURLWithPath:[[NSUserDefaults standardUserDefaults] stringForKey:@"Slot2_MPCF_DirectoryPath"]]];
-	[self setMpcfDiskImageURL:[NSURL fileURLWithPath:[[NSUserDefaults standardUserDefaults] stringForKey:@"Slot2_MPCF_DiskImagePath"]]];
-	[self setGbaCartridgeURL:[NSURL fileURLWithPath:[[NSUserDefaults standardUserDefaults] stringForKey:@"Slot2_GBA_CartridgePath"]]];
-	[self setGbaSRamURL:[NSURL fileURLWithPath:[[NSUserDefaults standardUserDefaults] stringForKey:@"Slot2_GBA_SRAMPath"]]];
+	[self setMpcfFolderURL:[[NSUserDefaults standardUserDefaults] URLForKey:@"Slot2_MPCF_DirectoryPath"]];
+	[self setMpcfDiskImageURL:[[NSUserDefaults standardUserDefaults] URLForKey:@"Slot2_MPCF_DiskImagePath"]];
+	[self setGbaCartridgeURL:[[NSUserDefaults standardUserDefaults] URLForKey:@"Slot2_GBA_CartridgePath"]];
+	[self setGbaSRamURL:[[NSUserDefaults standardUserDefaults] URLForKey:@"Slot2_GBA_SRAMPath"]];
 	[self selectDeviceByType:[[NSUserDefaults standardUserDefaults] integerForKey:@"Slot2_LoadedDevice"]];
 	[self applySettings:nil];
 }
@@ -260,17 +254,11 @@
 
 - (void) setMpcfFolderURL:(NSURL *)theURL
 {
-	[mpcfFolderURL release];
-	mpcfFolderURL = [theURL retain];
+	mpcfFolderURL = theURL;
 	
 	NSString *thePath = [mpcfFolderURL path];
 	[self setMpcfFolderPath:thePath];
 	[self setMpcfFolderName:[thePath lastPathComponent]];
-}
-
-- (NSURL *) mpcfFolderURL
-{
-	return mpcfFolderURL;
 }
 
 - (void) setMpcfFolderName:(NSString *)theName
@@ -296,17 +284,11 @@
 
 - (void) setMpcfDiskImageURL:(NSURL *)theURL
 {
-	[mpcfDiskImageURL release];
-	mpcfDiskImageURL = [theURL retain];
+	mpcfDiskImageURL = theURL;
 	
 	NSString *thePath = [mpcfDiskImageURL path];
 	[self setMpcfDiskImagePath:thePath];
 	[self setMpcfDiskImageName:[thePath lastPathComponent]];
-}
-
-- (NSURL *) mpcfDiskImageURL
-{
-	return mpcfDiskImageURL;
 }
 
 - (void) setMpcfDiskImageName:(NSString *)theName
@@ -363,65 +345,42 @@
 		return;
 	}
 	
-	NSNumber *mpcfOptionNumber = [[NSNumber numberWithInteger:mpcfOptionTag] retain]; // Released in chooseMPCFPathDidEnd:returnCode:contextInfo:
-	
-	// The NSOpenPanel/NSSavePanel method -(void)beginSheetForDirectory:file:types:modalForWindow:modalDelegate:didEndSelector:contextInfo
-	// is deprecated in Mac OS X v10.6.
-#if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_5
 	[panel setAllowedFileTypes:fileTypes];
 	[panel beginSheetModalForWindow:window
-				  completionHandler:^(NSInteger result) {
-					  [self chooseMPCFPathDidEnd:panel returnCode:result contextInfo:mpcfOptionNumber];
-				  } ];
-#else
-	[panel beginSheetForDirectory:nil
-							 file:nil
-							types:fileTypes
-				   modalForWindow:window
-					modalDelegate:self
-				   didEndSelector:@selector(chooseMPCFPathDidEnd:returnCode:contextInfo:)
-					  contextInfo:mpcfOptionNumber];
-#endif
-}
-
-- (void) chooseMPCFPathDidEnd:(NSOpenPanel *)sheet returnCode:(int)returnCode contextInfo:(void *)contextInfo
-{
-	const NSInteger prevMpcfOption = [[NSUserDefaults standardUserDefaults] integerForKey:@"Slot2_MPCF_PathOption"];
-	const NSInteger mpcfOptionTag = [(NSNumber *)contextInfo integerValue];
-	[(NSNumber *)contextInfo release]; // Retained in chooseMPCFPath:
-	
-	[sheet orderOut:self];
-	
-	// Temporarily set the MPCF path option in user defaults to some neutral value first and synchronize.
-	// When the user defaults are actually set later, this will force the proper state transitions to occur.
-	[[NSUserDefaults standardUserDefaults] setInteger:mpcfOptionTag forKey:@"Slot2_MPCF_PathOption"];
-	[[NSUserDefaults standardUserDefaults] synchronize];
-	
-	if (returnCode == NSCancelButton)
-	{
-		[[NSUserDefaults standardUserDefaults] setInteger:prevMpcfOption forKey:@"Slot2_MPCF_PathOption"];
-		return;
-	}
-	
-	NSURL *selectedURL = [[sheet URLs] lastObject]; //hopefully also the first object
-	if(selectedURL == nil)
-	{
-		[[NSUserDefaults standardUserDefaults] setInteger:prevMpcfOption forKey:@"Slot2_MPCF_PathOption"];
-		return;
-	}
-	
-	if (mpcfOptionTag == MPCF_ACTION_CHOOSE_DIRECTORY)
-	{
-		[self setMpcfFolderURL:selectedURL];
-		[[NSUserDefaults standardUserDefaults] setObject:[selectedURL path] forKey:@"Slot2_MPCF_DirectoryPath"];
-		[[NSUserDefaults standardUserDefaults] setInteger:MPCF_OPTION_LOAD_DIRECTORY forKey:@"Slot2_MPCF_PathOption"];
-	}
-	else if (mpcfOptionTag == MPCF_ACTION_CHOOSE_DISK_IMAGE)
-	{
-		[self setMpcfDiskImageURL:selectedURL];
-		[[NSUserDefaults standardUserDefaults] setObject:[selectedURL path] forKey:@"Slot2_MPCF_DiskImagePath"];
-		[[NSUserDefaults standardUserDefaults] setInteger:MPCF_OPTION_LOAD_DISK_IMAGE forKey:@"Slot2_MPCF_PathOption"];
-	}
+				  completionHandler:^(NSModalResponse result) {
+		const NSInteger prevMpcfOption = [[NSUserDefaults standardUserDefaults] integerForKey:@"Slot2_MPCF_PathOption"];
+		
+		// Temporarily set the MPCF path option in user defaults to some neutral value first and synchronize.
+		// When the user defaults are actually set later, this will force the proper state transitions to occur.
+		[[NSUserDefaults standardUserDefaults] setInteger:mpcfOptionTag forKey:@"Slot2_MPCF_PathOption"];
+		[[NSUserDefaults standardUserDefaults] synchronize];
+		
+		if (result == NSModalResponseCancel)
+		{
+			[[NSUserDefaults standardUserDefaults] setInteger:prevMpcfOption forKey:@"Slot2_MPCF_PathOption"];
+			return;
+		}
+		
+		NSURL *selectedURL = [[panel URLs] firstObject];
+		if(selectedURL == nil)
+		{
+			[[NSUserDefaults standardUserDefaults] setInteger:prevMpcfOption forKey:@"Slot2_MPCF_PathOption"];
+			return;
+		}
+		
+		if (mpcfOptionTag == MPCF_ACTION_CHOOSE_DIRECTORY)
+		{
+			[self setMpcfFolderURL:selectedURL];
+			[[NSUserDefaults standardUserDefaults] setURL:selectedURL forKey:@"Slot2_MPCF_DirectoryPath"];
+			[[NSUserDefaults standardUserDefaults] setInteger:MPCF_OPTION_LOAD_DIRECTORY forKey:@"Slot2_MPCF_PathOption"];
+		}
+		else if (mpcfOptionTag == MPCF_ACTION_CHOOSE_DISK_IMAGE)
+		{
+			[self setMpcfDiskImageURL:selectedURL];
+			[[NSUserDefaults standardUserDefaults] setURL:selectedURL forKey:@"Slot2_MPCF_DiskImagePath"];
+			[[NSUserDefaults standardUserDefaults] setInteger:MPCF_OPTION_LOAD_DISK_IMAGE forKey:@"Slot2_MPCF_PathOption"];
+		}
+	} ];
 }
 
 #pragma mark -
@@ -429,17 +388,11 @@
 
 - (void) setGbaCartridgeURL:(NSURL *)theURL
 {
-	[gbaCartridgeURL release];
-	gbaCartridgeURL = [theURL retain];
+	gbaCartridgeURL = theURL;
 	
 	NSString *thePath = [gbaCartridgeURL path];
 	[self setGbaCartridgePath:thePath];
 	[self setGbaCartridgeName:[thePath lastPathComponent]];
-}
-
-- (NSURL *) gbaCartridgeURL
-{
-	return gbaCartridgeURL;
 }
 
 - (void) setGbaCartridgeName:(NSString *)theName
@@ -465,8 +418,7 @@
 
 - (void) setGbaSRamURL:(NSURL *)theURL
 {
-	[gbaSRamURL release];
-	gbaSRamURL = [theURL retain];
+	gbaSRamURL = theURL;
 	
 	NSString *thePath = [gbaSRamURL path];
 	[self setGbaSRamPath:thePath];
@@ -509,53 +461,34 @@
 	[panel setCanChooseFiles:YES];
 	NSArray *fileTypes = [NSArray arrayWithObjects:@FILE_EXT_GBA_ROM, nil];
 		
-	// The NSOpenPanel/NSSavePanel method -(void)beginSheetForDirectory:file:types:modalForWindow:modalDelegate:didEndSelector:contextInfo
-	// is deprecated in Mac OS X v10.6.
-#if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_5
 	[panel setAllowedFileTypes:fileTypes];
 	[panel beginSheetModalForWindow:window
 				  completionHandler:^(NSInteger result) {
-					  [self chooseGbaCartridgePathDidEnd:panel returnCode:result contextInfo:nil];
-				  } ];
-#else
-	[panel beginSheetForDirectory:nil
-							 file:nil
-							types:fileTypes
-				   modalForWindow:window
-					modalDelegate:self
-				   didEndSelector:@selector(chooseGbaCartridgePathDidEnd:returnCode:contextInfo:)
-					  contextInfo:nil];
-#endif
-}
-
-- (void) chooseGbaCartridgePathDidEnd:(NSOpenPanel *)sheet returnCode:(int)returnCode contextInfo:(void *)contextInfo
-{
-	[sheet orderOut:self];
-	
-	if (returnCode == NSCancelButton)
-	{
-		return;
-	}
-	
-	NSURL *selectURL = [[sheet URLs] lastObject]; //hopefully also the first object
-	if(selectURL == nil)
-	{
-		return;
-	}
-	
-	[self setGbaCartridgeURL:selectURL];
-	[[NSUserDefaults standardUserDefaults] setObject:[selectURL path] forKey:@"Slot2_GBA_CartridgePath"];
-	
-	if ([self isGbaSRamWithCartridge])
-	{
-		NSString *sramPath = [NSString stringWithFormat:@"%@.%s", [[selectURL path] stringByDeletingPathExtension], FILE_EXT_GBA_SRAM];
-		[self setGbaSRamURL:[NSURL fileURLWithPath:sramPath]];
-		[[NSUserDefaults standardUserDefaults] setObject:sramPath forKey:@"Slot2_GBA_SRAMPath"];
-	}
-	else
-	{
-		[self clearSRamPath:self];
-	}
+		if (result == NSModalResponseCancel)
+		{
+			return;
+		}
+		
+		NSURL *selectURL = [[panel URLs] firstObject];
+		if(selectURL == nil)
+		{
+			return;
+		}
+		
+		[self setGbaCartridgeURL:selectURL];
+		[[NSUserDefaults standardUserDefaults] setURL:selectURL forKey:@"Slot2_GBA_CartridgePath"];
+		
+		if ([self isGbaSRamWithCartridge])
+		{
+			NSURL *sramURL = [[selectURL URLByDeletingPathExtension] URLByAppendingPathExtension:@FILE_EXT_GBA_SRAM];
+			[self setGbaSRamURL:sramURL];
+			[[NSUserDefaults standardUserDefaults] setURL:sramURL forKey:@"Slot2_GBA_SRAMPath"];
+		}
+		else
+		{
+			[self clearSRamPath:self];
+		}
+	} ];
 }
 
 - (IBAction) chooseGbaSRamPath:(id)sender
@@ -568,48 +501,29 @@
 	[panel setCanChooseFiles:YES];
 	NSArray *fileTypes = [NSArray arrayWithObjects:@FILE_EXT_GBA_SRAM, nil];
 	
-	// The NSOpenPanel/NSSavePanel method -(void)beginSheetForDirectory:file:types:modalForWindow:modalDelegate:didEndSelector:contextInfo
-	// is deprecated in Mac OS X v10.6.
-#if MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_5
 	[panel setAllowedFileTypes:fileTypes];
 	[panel beginSheetModalForWindow:window
-				  completionHandler:^(NSInteger result) {
-					  [self chooseGbaSRamPathDidEnd:panel returnCode:result contextInfo:nil];
-				  } ];
-#else
-	[panel beginSheetForDirectory:nil
-							 file:nil
-							types:fileTypes
-				   modalForWindow:window
-					modalDelegate:self
-				   didEndSelector:@selector(chooseGbaSRamPathDidEnd:returnCode:contextInfo:)
-					  contextInfo:nil];
-#endif
-}
-
-- (void) chooseGbaSRamPathDidEnd:(NSOpenPanel *)sheet returnCode:(int)returnCode contextInfo:(void *)contextInfo
-{
-	[sheet orderOut:self];
-	
-	if (returnCode == NSCancelButton)
-	{
-		return;
-	}
-	
-	NSURL *selectURL = [[sheet URLs] lastObject]; //hopefully also the first object
-	if(selectURL == nil)
-	{
-		return;
-	}
-	
-	[self setGbaSRamURL:selectURL];
-	[[NSUserDefaults standardUserDefaults] setObject:[selectURL path] forKey:@"Slot2_GBA_SRAMPath"];
+				  completionHandler:^(NSModalResponse result) {
+		if (result == NSModalResponseCancel)
+		{
+			return;
+		}
+		
+		NSURL *selectURL = [[panel URLs] firstObject];
+		if(selectURL == nil)
+		{
+			return;
+		}
+		
+		[self setGbaSRamURL:selectURL];
+		[[NSUserDefaults standardUserDefaults] setURL:selectURL forKey:@"Slot2_GBA_SRAMPath"];
+	} ];
 }
 
 - (IBAction) clearSRamPath:(id)sender
 {
 	[self setGbaSRamURL:nil];
-	[[NSUserDefaults standardUserDefaults] setObject:nil forKey:@"Slot2_GBA_SRAMPath"];
+	[[NSUserDefaults standardUserDefaults] removeObjectForKey:@"Slot2_GBA_SRAMPath"];
 }
 
 - (BOOL) isGbaSRamWithCartridge
@@ -626,7 +540,6 @@
 	
 	NSFileManager *fileManager = [[NSFileManager alloc] init];
 	result = [fileManager isReadableFileAtPath:sramPath];
-	[fileManager release];
 	
 	return result;
 }
@@ -637,8 +550,8 @@
 - (IBAction) testRumble:(id)sender
 {
 	NSDictionary *ffProperties = [NSDictionary dictionaryWithObjectsAndKeys:
-								  [NSNumber numberWithBool:YES], @"ffState",
-								  [NSNumber numberWithInteger:RUMBLE_ITERATIONS_TEST], @"iterations",
+								  @YES, @"ffState",
+								  @(RUMBLE_ITERATIONS_TEST), @"iterations",
 								  nil];
 	
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"org.desmume.DeSmuME.sendForceFeedback"
@@ -703,7 +616,6 @@
 	else
 	{
 		NSRect frameRect = [currentDeviceView frame];
-		[currentDeviceView retain];
 		[deviceSettingsBox replaceSubview:currentDeviceView with:viewNoSelection];
 		currentDeviceView = viewNoSelection;
 		[currentDeviceView setFrame:frameRect];
